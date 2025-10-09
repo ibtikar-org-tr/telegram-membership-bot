@@ -1,55 +1,127 @@
 import { Member, MemberUpdate } from '../types/member';
 import { Environment, GoogleSheetIndex } from '../types';
 
+export interface GoogleCredentials {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+}
+
 export class GoogleSheetsService {
   private env: Environment;
   private sheetIndex: GoogleSheetIndex;
-  private serviceAccount: any;
+  private credentials: GoogleCredentials;
+  private accessToken: string | null = null;
+  private tokenExpiry: number = 0;
 
   constructor(env: Environment) {
     this.env = env;
     this.sheetIndex = JSON.parse(env.GOOGLE_SHEET_INDEX);
-    
-    // GOOGLE_API_KEY can now be either a simple API key string or service account JSON
-    try {
-      this.serviceAccount = JSON.parse(env.GOOGLE_API_KEY);
-      console.log('Using service account JSON (not yet fully implemented)');
-    } catch (error) {
-      // If it's not valid JSON, treat it as a simple API key string
-      this.serviceAccount = env.GOOGLE_API_KEY;
-      console.log('Using simple API key');
-    }
+    this.credentials = JSON.parse(env.GOOGLE_API_KEY);
   }
 
   private async getAccessToken(): Promise<string> {
-    // For now, we'll use a simpler approach with API key
-    // Service account JWT signing is complex in Workers environment
-    // TODO: Implement proper service account authentication
-    return 'use_api_key';
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + 3600; // 1 hour
+
+    const header = {
+      alg: 'RS256',
+      typ: 'JWT',
+      kid: this.credentials.private_key_id,
+    };
+
+    const payload = {
+      iss: this.credentials.client_email,
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      aud: 'https://oauth2.googleapis.com/token',
+      exp,
+      iat: now,
+    };
+
+    // Create JWT token
+    const jwt = await this.createJWT(header, payload, this.credentials.private_key);
+
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
+    });
+
+    const data = await response.json() as { access_token: string; expires_in: number };
+    this.accessToken = data.access_token;
+    this.tokenExpiry = Date.now() + (data.expires_in * 1000);
+
+    return this.accessToken;
+  }
+
+  private async createJWT(header: any, payload: any, privateKey: string): Promise<string> {
+    const encoder = new TextEncoder();
+    
+    const headerBase64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const payloadBase64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    
+    const data = `${headerBase64}.${payloadBase64}`;
+    
+    // Import private key
+    const key = await crypto.subtle.importKey(
+      'pkcs8',
+      this.pemToArrayBuffer(privateKey),
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
+      },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, encoder.encode(data));
+    const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+    
+    return `${data}.${signatureBase64}`;
+  }
+
+  private pemToArrayBuffer(pem: string): ArrayBuffer {
+    const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\s+/g, '');
+    
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
   }
 
   private async makeRequest(url: string, options: RequestInit = {}) {
+    const token = await this.getAccessToken();
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
       ...options.headers as Record<string, string>,
     };
 
-    let requestUrl = url;
-    
-    // Always append the API key parameter for Google Sheets API
-    // The GOOGLE_API_KEY should now be a simple API key string after the secret update
-    const apiKey = this.env.GOOGLE_API_KEY;
-    
-    if (apiKey) {
-      // Add API key as query parameter
-      requestUrl += (url.includes('?') ? '&' : '?') + `key=${apiKey}`;
-    } else {
-      throw new Error('GOOGLE_API_KEY environment variable is not set');
-    }
-
-    console.log(`Making request to: ${requestUrl.replace(/key=[^&]+/, 'key=***')}`);
-
-    const response = await fetch(requestUrl, {
+    const response = await fetch(url, {
       ...options,
       headers,
     });
@@ -75,16 +147,67 @@ export class GoogleSheetsService {
     return row[columnIndex] || '';
   }
 
+  // Google Sheets API methods
+  async getSheetData(range: string): Promise<any[][]> {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${range}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${await this.getAccessToken()}`,
+        },
+      }
+    );
+
+    const data = await response.json() as { values?: any[][] };
+    return data.values || [];
+  }
+
+  async updateSheetData(range: string, values: any[][]): Promise<void> {
+    const token = await this.getAccessToken();
+    
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values,
+        }),
+      }
+    );
+  }
+
+  async updateSingleCell(cellRange: string, value: any): Promise<void> {
+    const token = await this.getAccessToken();
+    
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${cellRange}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: [[value]],
+        }),
+      }
+    );
+  }
+
   async getMembers(): Promise<Member[]> {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/Sheet1`;
+    const range = 'A:Z'; // Get all data
+    const data = await this.getSheetData(range);
     
-    const data = await this.makeRequest(url) as { values?: any[][] };
-    const rows = data.values || [];
+    if (data.length === 0) return [];
     
-    // Skip header row
-    const memberRows = rows.slice(1);
+    const headers = data[0];
+    const rows = data.slice(1);
     
-    return memberRows.map((row: any[]) => ({
+    return rows.map((row: any[]) => ({
       membership_number: this.getCellValue(row, this.sheetIndex.membership_number),
       ar_name: this.getCellValue(row, this.sheetIndex.ar_name),
       latin_name: this.getCellValue(row, this.sheetIndex.latin_name),
