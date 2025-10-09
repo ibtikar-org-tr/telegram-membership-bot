@@ -23,22 +23,44 @@ telegram.post('/webhook', async (c) => {
     const googleSheetsService = new GoogleSheetsService(c.env);
     const emailService = new EmailService(c.env);
 
+    // Helper function to mask email for privacy
+    const maskEmail = (email: string): string => {
+      if (!email || !email.includes('@')) {
+        return email;
+      }
+      const [localPart, domain] = email.split('@');
+      if (localPart.length <= 3) {
+        return `${localPart[0]}****${localPart[localPart.length - 1]}@${domain}`;
+      }
+      const maskedLocal = `${localPart.slice(0, 3)}****${localPart.slice(-2)}`;
+      return `${maskedLocal}@${domain}`;
+    };
+
     if (text === '/start') {
       await telegramService.sendMessage(
         telegramId,
-        'Welcome! Please provide your email address to verify your membership.'
+        'Welcome! Please provide your membership number to verify your membership.'
       );
-    } else if (text.includes('@')) {
-      // Assume it's an email address
-      const email = text.trim();
+    } else {
+      // Assume it's a membership number
+      const membershipNumber = text.trim();
       
       // Check if member exists in Google Sheets
-      const member = await googleSheetsService.getMemberByEmail(email);
+      const member = await googleSheetsService.getMemberByMembershipNumber(membershipNumber);
       
       if (!member) {
         await telegramService.sendMessage(
           telegramId,
-          'Email not found in our membership database. Please contact support.'
+          'Membership number not found in our database. Please check your membership number and try again, or contact support.'
+        );
+        return c.json({ ok: true });
+      }
+
+      // Check if member has an email address
+      if (!member.email) {
+        await telegramService.sendMessage(
+          telegramId,
+          'No email address found for this membership. Please contact support to update your email address.'
         );
         return c.json({ ok: true });
       }
@@ -48,7 +70,7 @@ telegram.post('/webhook', async (c) => {
       if (existingMember) {
         await telegramService.sendMessage(
           telegramId,
-          'User already exists, please contact your admin.'
+          'This Telegram account is already registered. Please contact your admin if you need assistance.'
         );
         return c.json({ ok: true });
       }
@@ -57,16 +79,14 @@ telegram.post('/webhook', async (c) => {
       const verificationLink = `${c.env.BASE_URL}/telegram/verify?membership_number=${encodeURIComponent(member.membership_number)}&telegram_id=${telegramId}&telegram_username=${encodeURIComponent(username || '')}`;
 
       // Send verification email
-      await emailService.sendVerificationEmail(email, verificationLink);
+      await emailService.sendVerificationEmail(member.email, verificationLink);
+      
+      // Show masked email to user
+      const maskedEmail = maskEmail(member.email);
       
       await telegramService.sendMessage(
         telegramId,
-        'Verification email sent! Please check your email and click the verification link.'
-      );
-    } else {
-      await telegramService.sendMessage(
-        telegramId,
-        'Please provide a valid email address or use /start to begin.'
+        `Verification email has been sent to ${maskedEmail}. Please check your email and click the verification link to complete the registration.`
       );
     }
 
