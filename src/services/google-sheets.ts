@@ -137,12 +137,18 @@ export class GoogleSheetsService {
   private getCellValue(row: any[], columnIndex: number | string): string {
     if (typeof columnIndex === 'string') {
       // Convert letter to number (A=0, B=1, C=2, etc.)
-      const upperIndex = columnIndex.toUpperCase();
+      // Normalize to lowercase first, then convert to uppercase for processing
+      const normalizedIndex = columnIndex.toUpperCase();
       let numIndex = 0;
-      for (let i = 0; i < upperIndex.length; i++) {
-        numIndex = numIndex * 26 + (upperIndex.charCodeAt(i) - 64);
+      
+      // Handle multi-character column names (AA, AB, etc.)
+      for (let i = 0; i < normalizedIndex.length; i++) {
+        numIndex = numIndex * 26 + (normalizedIndex.charCodeAt(i) - 64);
       }
-      return row[numIndex - 1] || '';
+      
+      // Convert to 0-based index (A=0, B=1, etc.)
+      const zeroBasedIndex = numIndex - 1;
+      return row[zeroBasedIndex] || '';
     }
     return row[columnIndex] || '';
   }
@@ -276,13 +282,15 @@ export class GoogleSheetsService {
 
   private getColumnLetter(columnIndex: number | string): string {
     if (typeof columnIndex === 'string') {
-      return columnIndex.toUpperCase();
+      // Normalize to uppercase for consistency
+      return columnIndex.toLowerCase().toUpperCase();
     }
     
     let result = '';
-    while (columnIndex >= 0) {
-      result = String.fromCharCode(65 + (columnIndex % 26)) + result;
-      columnIndex = Math.floor(columnIndex / 26) - 1;
+    let index = columnIndex;
+    while (index >= 0) {
+      result = String.fromCharCode(65 + (index % 26)) + result;
+      index = Math.floor(index / 26) - 1;
     }
     return result;
   }
