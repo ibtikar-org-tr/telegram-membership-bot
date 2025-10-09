@@ -61,6 +61,11 @@ export class GoogleSheetsService {
     return members.find(member => member.membership_number === membershipNumber) || null;
   }
 
+  async getMemberByTelegramId(telegramId: string): Promise<Member | null> {
+    const members = await this.getMembers();
+    return members.find(member => member.telegram_id === telegramId) || null;
+  }
+
   async updateMember(memberUpdate: MemberUpdate): Promise<void> {
     const members = await this.getMembers();
     const memberIndex = members.findIndex(m => m.membership_number === memberUpdate.membership_number);

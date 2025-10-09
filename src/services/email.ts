@@ -7,14 +7,12 @@ export class EmailService {
     this.env = env;
   }
 
-  async sendVerificationEmail(email: string, verificationCode: string): Promise<void> {
-    const verificationLink = `${this.env.BASE_URL}/verify?code=${verificationCode}`;
-    
+  async sendVerificationEmail(email: string, verificationLink: string): Promise<void> {
     const emailContent = `
       <h2>Telegram Bot Verification</h2>
       <p>Please click the link below to verify your Telegram account:</p>
       <a href="${verificationLink}">Verify Account</a>
-      <p>Or use this verification code: <strong>${verificationCode}</strong></p>
+      <p>This link will automatically register your Telegram account with our system.</p>
     `;
 
     // Using a simple email service approach for Cloudflare Workers
