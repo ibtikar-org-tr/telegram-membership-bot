@@ -12,16 +12,16 @@ export interface Environment {
 }
 
 export interface GoogleSheetIndex {
-  membership_number: number;
-  ar_name: number;
-  latin_name: number;
-  whatsapp: number;
-  email: number;
-  sex: number;
-  password: number;
-  phone: number;
-  telegram_id: number;
-  telegram_username: number;
+  membership_number: number | string;
+  ar_name: number | string;
+  latin_name: number | string;
+  whatsapp: number | string;
+  email: number | string;
+  sex: number | string;
+  password: number | string;
+  phone: number | string;
+  telegram_id: number | string;
+  telegram_username: number | string;
 }
 
 export interface TelegramUpdate {
