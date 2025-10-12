@@ -46,8 +46,19 @@ export interface TelegramUpdate {
   };
 }
 
+export interface InlineKeyboardButton {
+  text: string;
+  url?: string;
+  callback_data?: string;
+}
+
+export interface InlineKeyboardMarkup {
+  inline_keyboard: InlineKeyboardButton[][];
+}
+
 export interface SendMessageRequest {
   chat_id: number | string;
   text: string;
   parse_mode?: string;
+  reply_markup?: InlineKeyboardMarkup;
 }

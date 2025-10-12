@@ -1,4 +1,4 @@
-import { Environment, TelegramUpdate, SendMessageRequest } from '../types';
+import { Environment, TelegramUpdate, SendMessageRequest, InlineKeyboardButton, InlineKeyboardMarkup } from '../types';
 
 export class TelegramService {
   private env: Environment;
@@ -9,7 +9,7 @@ export class TelegramService {
     this.botToken = env.TELEGRAM_BOT_TOKEN;
   }
 
-  async sendMessage(chatId: number | string, text: string, parseMode?: string): Promise<void> {
+  async sendMessage(chatId: number | string, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
     
     const payload: SendMessageRequest = {
@@ -19,6 +19,12 @@ export class TelegramService {
 
     if (parseMode) {
       payload.parse_mode = parseMode;
+    }
+
+    if (inlineKeyboard && inlineKeyboard.length > 0) {
+      payload.reply_markup = {
+        inline_keyboard: inlineKeyboard
+      };
     }
 
     const response = await fetch(url, {
@@ -44,6 +50,18 @@ export class TelegramService {
     );
 
     await Promise.allSettled(promises);
+  }
+
+  async sendMessageWithBoxes(chatId: number | string, text: string, boxes: Array<{text: string, link: string}>, parseMode?: string): Promise<void> {
+    // Create inline keyboard from boxes
+    const inlineKeyboard: InlineKeyboardButton[][] = boxes.map(box => [
+      {
+        text: box.text,
+        url: box.link
+      }
+    ]);
+
+    await this.sendMessage(chatId, text, parseMode, inlineKeyboard);
   }
 
   async setWebhook(webhookUrl: string): Promise<void> {
