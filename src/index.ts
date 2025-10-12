@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { Environment } from './types';
 import telegramRoutes from './routes/telegram';
 import apiRoutes from './routes/api';
+import testingRoutes from './routes/testing';
 
 const app = new Hono<{ Bindings: Environment }>();
 
@@ -21,6 +22,7 @@ app.get('/', (c) => {
 // Mount routes
 app.route('/telegram', telegramRoutes);
 app.route('/api', apiRoutes);
+app.route('/api/testing', testingRoutes);
 
 // 404 handler
 app.notFound((c) => {
