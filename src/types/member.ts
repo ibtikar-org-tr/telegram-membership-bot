@@ -1,4 +1,4 @@
-export interface Member {
+export interface Member { // this member model is used for membership-google-sheet only
   membership_number: string;
   ar_name: string;
   latin_name: string;
