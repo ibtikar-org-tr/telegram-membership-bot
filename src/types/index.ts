@@ -1,4 +1,5 @@
 export interface Environment {
+  DB: D1Database;
   GOOGLE_SHEET_ID: string;
   GOOGLE_SHEET_INDEX: string; // JSON string
   GOOGLE_API_KEY: string; // JSON string
@@ -11,7 +12,7 @@ export interface Environment {
   BASE_URL: string;
 }
 
-export interface GoogleSheetIndex {
+export interface GoogleSheetIndex { // The main Google Sheet (members sheet)
   membership_number: number | string;
   ar_name: number | string;
   latin_name: number | string;
