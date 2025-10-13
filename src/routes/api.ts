@@ -3,6 +3,7 @@ import { Environment } from '../types';
 import { GoogleSheetsService } from '../services/google-sheets';
 import { TelegramService } from '../services/telegram';
 import { authMiddleware } from '../middleware/auth';
+import { sendMessageToMember } from '../services/member-servies';
 
 const api = new Hono<{ Bindings: Environment }>();
 
@@ -79,41 +80,17 @@ api.post('/notify-member', async (c) => {
     if (!message) {
       return c.json({ error: 'message is required' }, 400);
     }
-
-    const telegramService = new TelegramService(c.env);
-    const googleSheetsService = new GoogleSheetsService(c.env);
-
-    // Search for member by membership number (assuming member_id refers to membership_number)
-    const member = await googleSheetsService.getMemberByMembershipNumber(member_id);
-
-    if (!member) {
-      return c.json({ error: 'Member not found' }, 404);
-    }
-
-    if (!member.telegram_id) {
-      return c.json({ error: 'Member has not registered for Telegram notifications' }, 400);
-    }
-
-    // Send message with or without boxes
-    if (boxes && Array.isArray(boxes) && boxes.length > 0) {
-      // Validate boxes structure
-      const validBoxes = boxes.filter(box => 
-        box && typeof box.text === 'string' && typeof box.link === 'string'
-      );
-      
-      if (validBoxes.length === 0) {
-        return c.json({ error: 'Invalid boxes format. Each box must have text and link properties' }, 400);
-      }
-
-      await telegramService.sendMessageWithBoxes(member.telegram_id, message, validBoxes);
-    } else {
-      await telegramService.sendMessage(member.telegram_id, message);
-    }
     
+    const result = await sendMessageToMember(c.env, member_id, message, boxes);
+
+    if (result.error) {
+      return c.json({ error: result.error }, 400);
+    }
+
     return c.json({ 
       success: true, 
-      message: `Message sent to ${member.latin_name} (${member.membership_number})`,
-      telegram_id: member.telegram_id
+      message: result.message,
+      telegram_id: result.telegram_id
     });
   } catch (error) {
     console.error('Notify member error:', error);
