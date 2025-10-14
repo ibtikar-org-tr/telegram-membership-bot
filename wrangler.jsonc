@@ -6,14 +6,27 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "triggers": {
+    "crons": [
+      "*/5 8-21 * * *", // Every 5 minutes from 8 AM to 9 PM (task-check-work-hours)
+      "0 9 * * *" // Daily at 9 AM (daily-activity-report)
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "telegram-membership-bot-db",
+      "database_id": "xxxxxx-xxxxxx-xxx-xxxx-xxxxxx"
+    }
+  ],
   "vars": {
     "SMTP_HOST": "smtp.gmail.com",
     "SMTP_PORT": "587",
     "SMTP_USER": "ibtikar.org@gmail.com",
     "BASE_URL": "https://telegram-membership-bot.******.workers.dev"
-  },
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
   }
 }
