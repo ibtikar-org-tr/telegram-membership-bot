@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:migrate:local": "wrangler d1 execute DB --local --file=./migrations/d1_schema.sql",
+    "db:migrate:remote": "wrangler d1 execute DB --remote --file=./migrations/d1_schema.sql"
   },
   "dependencies": {
     "hono": "^4.9.10",
