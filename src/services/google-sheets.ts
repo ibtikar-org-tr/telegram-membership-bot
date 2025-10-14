@@ -151,21 +151,7 @@ export class GoogleSheetsService {
   }
 
   // Google Sheets API methods
-  async getSheetData(range: string): Promise<any[][]> {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${range}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${await this.getAccessToken()}`,
-        },
-      }
-    );
-
-    const data = await response.json() as { values?: any[][] };
-    return data.values || [];
-  }
-
-  async getSheetDataFromSpreadsheet(spreadsheetId: string, range: string): Promise<any[][]> {
+  async getSheetData(spreadsheetId: string, range: string): Promise<any[][]> {
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
       {
@@ -179,11 +165,13 @@ export class GoogleSheetsService {
     return data.values || [];
   }
 
-  async updateSheetData(range: string, values: any[][]): Promise<void> {
+
+
+  async updateSheetData(spreadsheetId: string, range: string, values: any[][]): Promise<void> {
     const token = await this.getAccessToken();
     
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -197,11 +185,11 @@ export class GoogleSheetsService {
     );
   }
 
-  async updateSingleCell(cellRange: string, value: any): Promise<void> {
+  async updateSingleCell(spreadsheetId: string, cellRange: string, value: any): Promise<void> {
     const token = await this.getAccessToken();
     
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${cellRange}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${cellRange}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -217,9 +205,8 @@ export class GoogleSheetsService {
 
 
 
-  async getSpreadsheetMetadata(spreadsheetId?: string): Promise<any> {
-    const sheetId = spreadsheetId || this.env.MEMBER_GOOGLE_SHEET_ID;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`;
+  async getSpreadsheetMetadata(spreadsheetId: string): Promise<any> {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`;
     return await this.makeRequest(url);
   }
 

@@ -17,7 +17,7 @@ export class MemberSheetServices {
 
   async getMembers(): Promise<Member[]> {
     const range = 'A:Z'; // Get all data
-    const data = await this.googleSheetsService.getSheetData(range);
+    const data = await this.googleSheetsService.getSheetData(this.env.MEMBER_GOOGLE_SHEET_ID, range);
     
     if (data.length === 0) return [];
     

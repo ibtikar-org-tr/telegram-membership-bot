@@ -155,7 +155,7 @@ export class TaskService {
   private async getContactsFromSheet(sheetId: string): Promise<Contact[]> {
     try {
       // Get contacts from the "contacts" sheet
-      const contactsData = await this.googleSheetsService.getSheetDataFromSpreadsheet(sheetId, 'contacts!A:Z');
+      const contactsData = await this.googleSheetsService.getSheetData(sheetId, 'contacts!A:Z');
       const contacts: Contact[] = [];
       
       if (contactsData && contactsData.length > 1) {
@@ -225,7 +225,7 @@ export class TaskService {
         
         try {
           // Get data from this sheet
-          const sheetData = await this.googleSheetsService.getSheetDataFromSpreadsheet(sheetId, `${sheetName}!A:Z`);
+          const sheetData = await this.googleSheetsService.getSheetData(sheetId, `${sheetName}!A:Z`);
           
           if (sheetData && sheetData.length > 1) {
             // Assume first row contains headers
