@@ -168,6 +168,20 @@ export class GoogleSheetsService {
     return data.values || [];
   }
 
+  async getSheetDataFromSpreadsheet(spreadsheetId: string, range: string): Promise<any[][]> {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${await this.getAccessToken()}`,
+        },
+      }
+    );
+
+    const data = await response.json() as { values?: any[][] };
+    return data.values || [];
+  }
+
   async updateSheetData(range: string, values: any[][]): Promise<void> {
     const token = await this.getAccessToken();
     
@@ -278,6 +292,12 @@ export class GoogleSheetsService {
         })
       });
     }
+  }
+
+  async getSpreadsheetMetadata(spreadsheetId?: string): Promise<any> {
+    const sheetId = spreadsheetId || this.env.MEMBER_GOOGLE_SHEET_ID;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`;
+    return await this.makeRequest(url);
   }
 
   private getColumnLetter(columnIndex: number | string): string {
