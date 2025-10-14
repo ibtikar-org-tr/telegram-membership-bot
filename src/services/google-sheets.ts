@@ -1,5 +1,5 @@
 import { Member, MemberUpdate } from '../types/member';
-import { Environment, GoogleSheetIndex } from '../types';
+import { Environment, MemberGoogleSheetIndex } from '../types';
 
 export interface GoogleCredentials {
   type: string;
@@ -16,7 +16,7 @@ export interface GoogleCredentials {
 
 export class GoogleSheetsService {
   private env: Environment;
-  private sheetIndex: GoogleSheetIndex;
+  private sheetIndex: MemberGoogleSheetIndex;
   private credentials: GoogleCredentials;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;

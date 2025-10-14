@@ -12,7 +12,7 @@ export interface Environment {
   BASE_URL: string;
 }
 
-export interface GoogleSheetIndex { // The main Google Sheet (members sheet)
+export interface MemberGoogleSheetIndex { // The main Google Sheet (members sheet)
   membership_number: number | string;
   ar_name: number | string;
   latin_name: number | string;
