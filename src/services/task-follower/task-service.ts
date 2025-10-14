@@ -96,6 +96,32 @@ export class TaskService {
     }
   }
 
+  // Compare two dates, handling both Date objects and date strings
+  private hasDateChanged(existingDate: Date | string | null | undefined, newDate: Date | null | undefined): boolean {
+    // If both are null/undefined, no change
+    if (!existingDate && !newDate) {
+      return false;
+    }
+    
+    // If one is null and the other isn't, there's a change
+    if (!existingDate || !newDate) {
+      return true;
+    }
+    
+    // Convert existing date to Date object if it's a string
+    const existingDateObj = typeof existingDate === 'string' 
+      ? this.parseDate(existingDate) 
+      : existingDate;
+    
+    // If parsing failed, consider it a change
+    if (!existingDateObj) {
+      return true;
+    }
+    
+    // Compare the timestamps
+    return existingDateObj.getTime() !== newDate.getTime();
+  }
+
   // Get specific contact from contacts data
   private getSpecificContact(contacts: any[], ownerName: string): Contact {
     try {
@@ -424,7 +450,7 @@ export class TaskService {
                   taskObj.last_sent = new Date();
                   send = false;
                 }
-              } else if (existingTask.dueDate?.getTime() !== taskObj.dueDate?.getTime()) {
+              } else if (this.hasDateChanged(existingTask.dueDate, taskObj.dueDate)) {
                 if (send) {
                   await this.sendUpdatedDueDateTask(existingTask, taskObj, manager);
                   taskObj.last_sent = new Date();
