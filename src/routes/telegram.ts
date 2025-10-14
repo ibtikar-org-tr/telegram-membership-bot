@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Environment, TelegramUpdate } from '../types';
-import { GoogleSheetsService } from '../services/google-sheets';
+import { MemberSheetServices } from '../services/membership-manager/member-sheet-services';
 import { TelegramService } from '../services/telegram';
 import { EmailService } from '../services/email';
 
@@ -20,7 +20,7 @@ telegram.post('/webhook', async (c) => {
     const text = message.text || '';
 
     const telegramService = new TelegramService(c.env);
-    const googleSheetsService = new GoogleSheetsService(c.env);
+    const memberSheetServices = new MemberSheetServices(c.env);
     const emailService = new EmailService(c.env);
 
     // Helper function to mask email for privacy
@@ -46,7 +46,7 @@ telegram.post('/webhook', async (c) => {
       const membershipNumber = text.trim();
       
       // Check if member exists in Google Sheets
-      const member = await googleSheetsService.getMemberByMembershipNumber(membershipNumber);
+      const member = await memberSheetServices.getMemberByMembershipNumber(membershipNumber);
       
       if (!member) {
         await telegramService.sendMessage(
@@ -66,7 +66,7 @@ telegram.post('/webhook', async (c) => {
       }
 
       // Check if this telegram_id is already registered
-      const existingMember = await googleSheetsService.getMemberByTelegramId(telegramId.toString());
+      const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId.toString());
       if (existingMember) {
         await telegramService.sendMessage(
           telegramId,
@@ -107,23 +107,23 @@ telegram.get('/verify', async (c) => {
       return c.html('<h1>Invalid verification link</h1><p>Missing required parameters.</p>');
     }
 
-    const googleSheetsService = new GoogleSheetsService(c.env);
+    const memberSheetServices = new MemberSheetServices(c.env);
     const telegramService = new TelegramService(c.env);
 
     // Check if the membership number exists
-    const member = await googleSheetsService.getMemberByMembershipNumber(membershipNumber);
+    const member = await memberSheetServices.getMemberByMembershipNumber(membershipNumber);
     if (!member) {
       return c.html('<h1>Verification Failed</h1><p>Member not found. Please contact support.</p>');
     }
 
     // Check if this telegram_id is already registered to any user
-    const existingMember = await googleSheetsService.getMemberByTelegramId(telegramId);
+    const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId);
     if (existingMember) {
       return c.html('<h1>User Already Exists</h1><p>This Telegram account is already registered. Please contact your admin.</p>');
     }
 
     // Update member with Telegram information
-    await googleSheetsService.updateMember({
+    await memberSheetServices.updateMember({
       membership_number: membershipNumber,
       telegram_id: telegramId,
       telegram_username: telegramUsername

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Environment } from '../types';
-import { GoogleSheetsService } from '../services/google-sheets';
+import { MemberSheetServices } from '../services/membership-manager/member-sheet-services';
 import { TelegramService } from '../services/telegram';
 import { authMiddleware } from '../middleware/auth';
 import { sendMessageToMember } from '../services/membership-manager/member-services';
@@ -19,11 +19,11 @@ api.post('/send-message', async (c) => {
     }
 
     const telegramService = new TelegramService(c.env);
-    const googleSheetsService = new GoogleSheetsService(c.env);
+    const memberSheetServices = new MemberSheetServices(c.env);
 
     if (target === 'all') {
       // Send to all members with telegram_id
-      const members = await googleSheetsService.getMembers();
+      const members = await memberSheetServices.getMembers();
       const telegramIds = members
         .filter(member => member.telegram_id)
         .map(member => member.telegram_id);
@@ -40,10 +40,10 @@ api.post('/send-message', async (c) => {
       });
     } else if (target) {
       // Send to specific member by membership number or email
-      let member = await googleSheetsService.getMemberByMembershipNumber(target);
+      let member = await memberSheetServices.getMemberByMembershipNumber(target);
       
       if (!member) {
-        member = await googleSheetsService.getMemberByEmail(target);
+        member = await memberSheetServices.getMemberByEmail(target);
       }
 
       if (!member) {

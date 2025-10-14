@@ -1,14 +1,14 @@
 import { TelegramService } from '../telegram';
-import { GoogleSheetsService } from '../google-sheets';
+import { MemberSheetServices } from './member-sheet-services';
 import { Environment } from '../../types';
 
 export async function sendMessageToMember(env: Environment, member_id: string, message: string, boxes: Array<{ text: string, link: string }>) {
   try {
     const telegramService = new TelegramService(env);
-    const googleSheetsService = new GoogleSheetsService(env);
+    const memberSheetServices = new MemberSheetServices(env);
 
     // Search for member by membership number (assuming member_id refers to membership_number)
-    const member = await googleSheetsService.getMemberByMembershipNumber(member_id);
+    const member = await memberSheetServices.getMemberByMembershipNumber(member_id);
 
     if (!member) {
         console.error('Member not found for ID:', member_id);
