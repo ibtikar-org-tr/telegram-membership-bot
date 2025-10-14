@@ -63,3 +63,11 @@ export interface SendMessageRequest {
   parse_mode?: string;
   reply_markup?: InlineKeyboardMarkup;
 }
+
+export interface TelegramUserState {
+  telegram_id: string;
+  state: string;
+  notes?: string;
+  created_at: string;
+  modified_at: string;
+}

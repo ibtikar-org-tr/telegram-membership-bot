@@ -49,6 +49,15 @@ CREATE TABLE IF NOT EXISTS tasks (
     milestone TEXT NOT NULL DEFAULT ''
 );
 
+-- Telegram User States table
+CREATE TABLE IF NOT EXISTS telegram_user_states (
+    telegram_id TEXT PRIMARY KEY,
+    state TEXT NOT NULL DEFAULT 'normal',
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    modified_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_activities_manager_id ON activities(managerID);
 CREATE INDEX IF NOT EXISTS idx_activities_project_name ON activities(projectName);
@@ -60,6 +69,9 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(dueDate);
 CREATE INDEX IF NOT EXISTS idx_tasks_project_name ON tasks(projectName);
+CREATE INDEX IF NOT EXISTS idx_telegram_user_states_telegram_id ON telegram_user_states(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_telegram_user_states_state ON telegram_user_states(state);
+CREATE INDEX IF NOT EXISTS idx_telegram_user_states_modified_at ON telegram_user_states(modified_at);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 
@@ -74,4 +86,11 @@ CREATE TRIGGER IF NOT EXISTS update_tasks_updated_at
     FOR EACH ROW 
     BEGIN
         UPDATE tasks SET updated_at = datetime('now') WHERE id = NEW.id;
+    END;
+
+CREATE TRIGGER IF NOT EXISTS update_telegram_user_states_modified_at 
+    AFTER UPDATE ON telegram_user_states 
+    FOR EACH ROW 
+    BEGIN
+        UPDATE telegram_user_states SET modified_at = datetime('now') WHERE telegram_id = NEW.telegram_id;
     END;
