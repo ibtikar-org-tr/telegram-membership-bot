@@ -23,7 +23,7 @@ export class GoogleSheetsService {
 
   constructor(env: Environment) {
     this.env = env;
-    this.sheetIndex = JSON.parse(env.GOOGLE_SHEET_INDEX);
+    this.sheetIndex = JSON.parse(env.MEMBER_GOOGLE_SHEET_INDEX);
     this.credentials = JSON.parse(env.GOOGLE_API_KEY);
   }
 
