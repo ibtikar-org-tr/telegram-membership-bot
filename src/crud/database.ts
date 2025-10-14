@@ -69,6 +69,7 @@ export class D1DatabaseConnection implements DatabaseConnection {
   }
 }
 
+// TODO will be deleted later - sql file migrations will be used instead
 // Factory function to create database connection from Cloudflare Workers environment
 export function createDatabaseConnection(env: Env): DatabaseConnection {
   return new D1DatabaseConnection(env.DB);
