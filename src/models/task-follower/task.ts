@@ -1,14 +1,14 @@
-export interface Task {
+export interface Task { // represents a task extracted from a Google Sheet (Task Google Sheet)
   id?: string;
   created_at: Date;
   updated_at: Date;
   last_sent?: Date | null;
   last_reported?: Date | null;
-  sheetID: string;
+  sheetID: string; // google sheet ID
   projectName: string;
-  pageID: string;
+  pageID: string; // google sheet page ID
   row_number: number;
-  ownerID: string;
+  ownerID: string; // membership_number for the member (owner of the task)
   ownerName: string;
   ownerEmail: string;
   ownerPhone: string;

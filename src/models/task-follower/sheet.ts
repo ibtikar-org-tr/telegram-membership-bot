@@ -5,7 +5,7 @@ export interface Sheet {
   created_at: Date;
 }
 
-export class SheetModel implements Sheet {
+export class TaskSheetModel implements Sheet { // this model is used for the task-google-sheet only
   id?: string;
   sheetID: string;
   sheetName: string;
