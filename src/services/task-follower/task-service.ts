@@ -8,6 +8,7 @@ import { TelegramService } from '../telegram';
 import { sendMessageToMember } from '../member-servies';
 import { Environment } from '../../types';
 import { DatabaseConnection } from '../../crud/base';
+import { escapeMarkdownV2 } from '../../utils/helpers';
 
 interface Contact {
   number: string; // this is the membership_number
@@ -483,15 +484,15 @@ export class TaskService {
     const text = `
 🆕 *مهمّة جديدة*
 
-📋 *المهمّة:* ${task.taskText}
-⚡ *الاستعجاليّة:* ${task.priority}
-📅 *آخر موعد للتّسليم:* ${task.dueDate ? task.dueDate.toLocaleDateString('ar') : 'غير محدد'}
+📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+📅 *آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
 
-📝 *ملاحظات:* ${task.notes || 'لا توجد ملاحظات'}
+📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
-🏗️ *المشروع:* ${task.projectName}
-👨‍💼 *مسؤول المشروع:* ${manager.name1}
-📞 *رقم المسؤول:* wa.me/${manager.phone}
+🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
+👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
+📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
 `;
@@ -513,15 +514,15 @@ export class TaskService {
     const text = `
 ⏰ *تذكير بالمهمّة*
 
-📋 *المهمّة:* ${task.taskText}
-⚡ *الاستعجاليّة:* ${task.priority}
-📅 *آخر موعد للتّسليم:* ${task.dueDate ? task.dueDate.toLocaleDateString('ar') : 'غير محدد'}
+📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+📅 *آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
 
-📝 *ملاحظات:* ${task.notes || 'لا توجد ملاحظات'}
+📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
-🏗️ *المشروع:* ${task.projectName}
-👨‍💼 *مسؤول المشروع:* ${manager.name1}
-📞 *رقم المسؤول:* wa.me/${manager.phone}
+🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
+👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
+📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
 `;
@@ -542,15 +543,15 @@ export class TaskService {
     const text = `
 🚨 *مهمّة متأخرة*
 
-📋 *المهمّة:* ${task.taskText}
-⚡ *الاستعجاليّة:* ${task.priority}
-📅 *كان آخر موعد للتّسليم:* ${task.dueDate ? task.dueDate.toLocaleDateString('ar') : 'غير محدد'}
+📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+📅 *كان آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
 
-📝 *ملاحظات:* ${task.notes || 'لا توجد ملاحظات'}
+📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
-🏗️ *المشروع:* ${task.projectName}
-👨‍💼 *مسؤول المشروع:* ${manager.name1}
-📞 *رقم المسؤول:* wa.me/${manager.phone}
+🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
+👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
+📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
 
 ⚠️ *الرجاء التواصل مع مسؤول المشروع في أقرب وقت ممكن*
 
@@ -573,16 +574,16 @@ export class TaskService {
     const text = `
 📅 *تحديث موعد التسليم*
 
-📋 *المهمّة:* ${newTask.taskText}
-⚡ *الاستعجاليّة:* ${newTask.priority}
-📅 *الموعد الجديد:* ${newTask.dueDate ? newTask.dueDate.toLocaleDateString('ar') : 'غير محدد'}
-📅 *الموعد السابق:* ${oldTask.dueDate ? new Date(oldTask.dueDate).toLocaleDateString('ar') : 'غير محدد'}
+📋 *المهمّة:* ${escapeMarkdownV2(newTask.taskText)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(newTask.priority)}
+📅 *الموعد الجديد:* ${newTask.dueDate ? escapeMarkdownV2(newTask.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
+📅 *الموعد السابق:* ${oldTask.dueDate ? escapeMarkdownV2(new Date(oldTask.dueDate).toLocaleDateString('ar')) : 'غير محدد'}
 
-📝 *ملاحظات:* ${newTask.notes || 'لا توجد ملاحظات'}
+📝 *ملاحظات:* ${escapeMarkdownV2(newTask.notes || 'لا توجد ملاحظات')}
 
-🏗️ *المشروع:* ${newTask.projectName}
-👨‍💼 *مسؤول المشروع:* ${manager.name1}
-📞 *رقم المسؤول:* wa.me/${manager.phone}
+🏗️ *المشروع:* ${escapeMarkdownV2(newTask.projectName)}
+👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
+📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${newTask.sheetID}/?gid=${newTask.pageID})
 `;
@@ -610,18 +611,18 @@ export class TaskService {
     const text = `
 ⚠️ *بيانات ناقصة في المهمة*
 
-🏗️ *المشروع:* ${task.projectName}
-📍 *الصف:* ${task.row_number}
+🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
+📍 *الصف:* ${escapeMarkdownV2(task.row_number?.toString() || '')}
 
 ❌ *البيانات الناقصة:*
-${missingFields.map(field => `• ${field}`).join('\n')}
+${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
 
-📝 *المهمة الحالية:* ${task.taskText || 'غير محددة'}
-👤 *المسؤول الحالي:* ${task.ownerName || 'غير محدد'}
+📝 *المهمة الحالية:* ${escapeMarkdownV2(task.taskText || 'غير محددة')}
+👤 *المسؤول الحالي:* ${escapeMarkdownV2(task.ownerName || 'غير محدد')}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
 
-الرجاء استكمال البيانات الناقصة في الملف.
+الرجاء استكمال البيانات الناقصة في الملف\\.
 `;
 
     try {
