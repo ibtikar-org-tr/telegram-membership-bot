@@ -20,7 +20,7 @@ app.get('/', (c) => {
     version: '1.1.0',
     features: [
       'Telegram Bot Integration',
-      'User Membership Management from Member Google Sheets',
+      'Membership Management from Member Google Sheets',
       'Task Management from Task Google Sheets',
       'Automated Task Notifications',
       'Sheet Registration and Management',
