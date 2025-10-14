@@ -156,7 +156,7 @@ export class GoogleSheetsService {
   // Google Sheets API methods
   async getSheetData(range: string): Promise<any[][]> {
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${range}`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${range}`,
       {
         headers: {
           'Authorization': `Bearer ${await this.getAccessToken()}`,
@@ -172,7 +172,7 @@ export class GoogleSheetsService {
     const token = await this.getAccessToken();
     
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -190,7 +190,7 @@ export class GoogleSheetsService {
     const token = await this.getAccessToken();
     
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values/${cellRange}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values/${cellRange}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -268,7 +268,7 @@ export class GoogleSheetsService {
     }
 
     if (updates.length > 0) {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.env.GOOGLE_SHEET_ID}/values:batchUpdate`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.env.MEMBER_GOOGLE_SHEET_ID}/values:batchUpdate`;
       
       await this.makeRequest(url, {
         method: 'POST',

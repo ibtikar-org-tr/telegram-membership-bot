@@ -1,6 +1,6 @@
 export interface Environment {
   DB: D1Database;
-  GOOGLE_SHEET_ID: string;
+  MEMBER_GOOGLE_SHEET_ID: string;
   GOOGLE_SHEET_INDEX: string; // JSON string
   GOOGLE_API_KEY: string; // JSON string
   TELEGRAM_BOT_TOKEN: string;
