@@ -58,8 +58,9 @@ export class TaskModel implements Task {
     this.id = data.id || crypto.randomUUID();
     this.created_at = data.created_at || new Date();
     this.updated_at = data.updated_at || new Date();
-    this.last_sent = data.last_sent;
-    this.last_reported = data.last_reported;
+    // Convert undefined to null for D1 database compatibility
+    this.last_sent = data.last_sent ?? null;
+    this.last_reported = data.last_reported ?? null;
     this.sheetID = data.sheetID;
     this.projectName = data.projectName;
     this.pageID = data.pageID;
@@ -73,10 +74,10 @@ export class TaskModel implements Task {
     this.status = data.status;
     this.taskText = data.taskText;
     this.priority = data.priority;
-    this.dueDate = data.dueDate;
-    this.completed_at = data.completed_at;
-    this.blocked_at = data.blocked_at;
-    this.notes = data.notes;
+    this.dueDate = data.dueDate ?? null;
+    this.completed_at = data.completed_at ?? null;
+    this.blocked_at = data.blocked_at ?? null;
+    this.notes = data.notes ?? null;
     this.milestone = data.milestone || '';
   }
 

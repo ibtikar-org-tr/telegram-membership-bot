@@ -147,6 +147,19 @@ taskRoutes.post('/', async (c) => {
       }, 400);
     }
     
+    // Parse date strings to Date objects where needed
+    if (taskData.dueDate && typeof taskData.dueDate === 'string') {
+      try {
+        taskData.dueDate = new Date(taskData.dueDate);
+        // Check if date is valid
+        if (isNaN(taskData.dueDate.getTime())) {
+          taskData.dueDate = null;
+        }
+      } catch {
+        taskData.dueDate = null;
+      }
+    }
+    
     const task = new TaskModel(taskData);
     const createdTask = await taskService.createNewTask(task);
     
