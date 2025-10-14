@@ -5,7 +5,7 @@ import { Task, TaskModel } from '../../models/task-follower/task';
 import { Sheet } from '../../models/task-follower/sheet';
 import { GoogleSheetsService } from '../google-sheets';
 import { TelegramService } from '../telegram';
-import { sendMessageToMember } from '../member-servies';
+import { sendMessageToMember } from '../membership-manager/member-services';
 import { Environment } from '../../types';
 import { DatabaseConnection } from '../../crud/base';
 import { escapeMarkdownV2 } from '../../utils/helpers';

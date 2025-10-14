@@ -3,7 +3,7 @@ import { Environment } from '../types';
 import { GoogleSheetsService } from '../services/google-sheets';
 import { TelegramService } from '../services/telegram';
 import { authMiddleware } from '../middleware/auth';
-import { sendMessageToMember } from '../services/member-servies';
+import { sendMessageToMember } from '../services/membership-manager/member-services';
 
 const api = new Hono<{ Bindings: Environment }>();
 

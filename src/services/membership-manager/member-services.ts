@@ -1,6 +1,6 @@
-import { TelegramService } from './telegram';
-import { GoogleSheetsService } from './google-sheets';
-import { Environment } from '../types';
+import { TelegramService } from '../telegram';
+import { GoogleSheetsService } from '../google-sheets';
+import { Environment } from '../../types';
 
 export async function sendMessageToMember(env: Environment, member_id: string, message: string, boxes: Array<{ text: string, link: string }>) {
   try {
