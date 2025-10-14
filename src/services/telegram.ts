@@ -9,7 +9,7 @@ export class TelegramService {
     this.botToken = env.TELEGRAM_BOT_TOKEN;
   }
 
-  async sendMessage(chatId: number | string, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
+  async sendMessage(chatId: number | string, text: string, parseMode: string = 'MarkdownV2', inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
     
     const payload: SendMessageRequest = {
