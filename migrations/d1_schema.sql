@@ -1,16 +1,7 @@
 -- Migration script for Telegram Membership Bot (Cloudflare D1/SQLite)
 -- Created: 2025-10-12
--- Description: Initial database schema for users, activities, sheets, and tasks
+-- Description: Initial database schema for activities, sheets, and tasks
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-    username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    last_login TEXT NOT NULL
-);
 
 -- Activities table (Daily checkup for the manager)
 CREATE TABLE IF NOT EXISTS activities (
@@ -59,8 +50,6 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_activities_manager_id ON activities(managerID);
 CREATE INDEX IF NOT EXISTS idx_activities_project_name ON activities(projectName);
 CREATE INDEX IF NOT EXISTS idx_sheets_sheet_id ON sheets(sheetID);

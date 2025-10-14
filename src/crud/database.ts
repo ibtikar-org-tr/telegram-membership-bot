@@ -77,16 +77,6 @@ export function createDatabaseConnection(env: Env): DatabaseConnection {
 // Helper function to initialize database with schema (for development/testing)
 export async function initializeDatabase(db: DatabaseConnection): Promise<boolean> {
   const initQueries = [
-    // Create users table
-    `CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-      username TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      last_login TEXT NOT NULL
-    )`,
-
     // Create activities table
     `CREATE TABLE IF NOT EXISTS activities (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),

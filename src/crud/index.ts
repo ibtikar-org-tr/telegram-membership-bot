@@ -1,25 +1,21 @@
 // Main CRUD exports for task-follower models
 export { BaseCrud, DatabaseConnection } from './base';
-export { UserCrud } from './task-follower/user';
 export { ActivityCrud } from './task-follower/activity';
 export { SheetCrud } from './task-follower/sheet';
 export { TaskCrud } from './task-follower/task';
 
 // Combined CRUD manager class
-import { UserCrud } from './task-follower/user';
 import { ActivityCrud } from './task-follower/activity';
 import { SheetCrud } from './task-follower/sheet';
 import { TaskCrud } from './task-follower/task';
 import { DatabaseConnection } from './base';
 
 export class TaskFollowerCrud {
-  public users: UserCrud;
   public activities: ActivityCrud;
   public sheets: SheetCrud;
   public tasks: TaskCrud;
 
   constructor(db: DatabaseConnection) {
-    this.users = new UserCrud(db);
     this.activities = new ActivityCrud(db);
     this.sheets = new SheetCrud(db);
     this.tasks = new TaskCrud(db);
@@ -28,7 +24,6 @@ export class TaskFollowerCrud {
   // Helper method to get all CRUD instances
   getAllCrudInstances() {
     return {
-      users: this.users,
       activities: this.activities,
       sheets: this.sheets,
       tasks: this.tasks
@@ -44,13 +39,7 @@ export class TaskFollowerCrud {
     const checks: Record<string, boolean> = {};
     const errors: string[] = [];
 
-    try {
-      // Test each table
-      checks.users = (await this.users.count()) >= 0;
-    } catch (error) {
-      checks.users = false;
-      errors.push(`Users table error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    // Test each table
 
     try {
       checks.activities = (await this.activities.count()) >= 0;
@@ -84,7 +73,6 @@ export class TaskFollowerCrud {
 
   // Get comprehensive statistics across all models
   async getOverallStats(): Promise<{
-    users: { total: number };
     activities: { total: number };
     sheets: { total: number };
     tasks: {
@@ -97,15 +85,13 @@ export class TaskFollowerCrud {
     };
   }> {
     try {
-      const [userCount, activityCount, sheetCount, taskStats] = await Promise.all([
-        this.users.count(),
+      const [activityCount, sheetCount, taskStats] = await Promise.all([
         this.activities.count(),
         this.sheets.count(),
         this.tasks.getTaskStats()
       ]);
 
       return {
-        users: { total: userCount },
         activities: { total: activityCount },
         sheets: { total: sheetCount },
         tasks: taskStats
@@ -113,7 +99,6 @@ export class TaskFollowerCrud {
     } catch (error) {
       console.error('Error getting overall stats:', error);
       return {
-        users: { total: 0 },
         activities: { total: 0 },
         sheets: { total: 0 },
         tasks: {
