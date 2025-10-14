@@ -458,6 +458,14 @@ export class TaskService {
                 }
               }
 
+              // Preserve existing last_sent and last_reported values unless they were just updated
+              if (!taskObj.last_sent && existingTask.last_sent) {
+                taskObj.last_sent = existingTask.last_sent;
+              }
+              if (!taskObj.last_reported && existingTask.last_reported) {
+                taskObj.last_reported = existingTask.last_reported;
+              }
+
               // Update existing task
               await this.updateTaskById(existingTask.id!, taskObj);
             } else {
