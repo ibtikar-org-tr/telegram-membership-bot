@@ -23,7 +23,13 @@ export abstract class BaseCrud<T> {
     try {
       const id = crypto.randomUUID();
       const fields = Object.keys(data as any);
-      const values = Object.values(data as any);
+      // Convert Date objects to ISO strings for D1 compatibility
+      const values = Object.values(data as any).map(value => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return value;
+      });
       const placeholders = fields.map(() => '?').join(', ');
       
       const query = `INSERT INTO ${this.tableName} (id, ${fields.join(', ')}) VALUES (?, ${placeholders})`;
@@ -75,7 +81,13 @@ export abstract class BaseCrud<T> {
   async update(id: string, data: Partial<Omit<T, 'id'>>): Promise<{ success: boolean; error?: string }> {
     try {
       const fields = Object.keys(data as any);
-      const values = Object.values(data as any);
+      // Convert Date objects to ISO strings for D1 compatibility
+      const values = Object.values(data as any).map(value => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return value;
+      });
       const setClause = fields.map(field => `${field} = ?`).join(', ');
       
       const query = `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`;
