@@ -71,11 +71,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           echo "${{ secrets.SECRET_KEY }}" | wrangler secret put SECRET_KEY
-          echo "${process.env.MEMBER_GOOGLE_SHEET_INDEX}" | wrangler secret put MEMBER_GOOGLE_SHEET_INDEX
           echo "${process.env.MEMBER_GOOGLE_SHEET_ID}" | wrangler secret put MEMBER_GOOGLE_SHEET_ID
           echo "${{ secrets.SMTP_PASS }}" | wrangler secret put SMTP_PASS
           echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" | wrangler secret put TELEGRAM_BOT_TOKEN
           # Handle JSON secret properly by writing to temp file first
+          echo '${{ secrets.MEMBER_GOOGLE_SHEET_INDEX }}' > MEMBER_GOOGLE_SHEET_INDEX.json
+          wrangler secret put MEMBER_GOOGLE_SHEET_INDEX < MEMBER_GOOGLE_SHEET_INDEX.json
+          rm MEMBER_GOOGLE_SHEET_INDEX.json
           echo '${{ secrets.GOOGLE_API_KEY }}' > GOOGLE_API.json
           wrangler secret put GOOGLE_API_KEY < GOOGLE_API.json
           rm GOOGLE_API.json
