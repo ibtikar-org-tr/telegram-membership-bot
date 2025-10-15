@@ -70,4 +70,12 @@ export class TelegramUserStateService {
     const userState = await this.getUserState(telegramId);
     return userState?.state || 'normal';
   }
+
+  /**
+   * Get notes from user state
+   */
+  async getUserStateNotes(telegramId: string): Promise<string | null> {
+    const userState = await this.getUserState(telegramId);
+    return userState?.notes || null;
+  }
 }

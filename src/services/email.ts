@@ -50,12 +50,19 @@ export class EmailService {
     }
   }
 
-  async sendVerificationEmail(email: string, verificationLink: string): Promise<void> {
+  async sendVerificationEmail(email: string, verificationLink: string, verificationCode?: string): Promise<void> {
     const subject = 'Telegram Bot Verification - تجمّع إبتكار';
+
+    const codeSection = verificationCode ? `
+رمز التحقق الخاص بك: ${verificationCode}
+
+يمكنك إدخال هذا الرمز في التليجرام، أو استخدام الرابط أدناه.
+` : '';
 
     const text = `
 مرحباً،
 
+${codeSection}
 يرجى النقر على الرابط أدناه للتحقق من حساب التليجرام الخاص بك:
 
 ${verificationLink}
@@ -65,6 +72,15 @@ ${verificationLink}
 مع خالص التحية،
 فريق تجمّع إبتكار
     `.trim();
+
+    const codeHtml = verificationCode ? `
+            <div style="text-align: center; background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 14px; color: #666; margin-bottom: 10px;">رمز التحقق الخاص بك:</p>
+                <p style="font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 0;">${verificationCode}</p>
+            </div>
+            <p style="text-align: center; color: #666; font-size: 14px;">يمكنك إدخال هذا الرمز في التليجرام</p>
+            <p style="text-align: center; margin: 20px 0;"><strong>أو</strong></p>
+` : '';
 
     const html = `
 <!DOCTYPE html>
@@ -96,6 +112,7 @@ ${verificationLink}
         </div>
         <div class="content">
             <p>مرحباً،</p>
+            ${codeHtml}
             <p>يرجى النقر على الزر أدناه للتحقق من حساب التليجرام الخاص بك:</p>
             <p style="text-align: center;">
                 <a href="${verificationLink}" class="button">تحقق من الحساب</a>

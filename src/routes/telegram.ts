@@ -8,6 +8,11 @@ import { escapeMarkdownV2 } from '../utils/helpers';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
+// Helper function to generate 6-digit verification code
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 telegram.post('/webhook', async (c) => {
   try {
     const update: TelegramUpdate = await c.req.json();
@@ -95,6 +100,19 @@ telegram.post('/webhook', async (c) => {
         );
         break;
 
+      case 'waiting_verification_code':
+        // Process verification code
+        await handleVerificationCodeInput(
+          text.trim(),
+          telegramId,
+          username,
+          memberSheetServices,
+          telegramService,
+          userStateService,
+          c.env
+        );
+        break;
+
       case 'normal':
       default:
         // Normal state - show help menu for any text
@@ -165,22 +183,102 @@ async function handleMembershipNumberInput(
     return;
   }
 
+  // Generate 6-digit verification code
+  const verificationCode = generateVerificationCode();
+  
+  // Store verification code and membership number in user state notes
+  // Format: code|membership_number|username
+  const stateData = `${verificationCode}|${member.membership_number}|${username || ''}`;
+  await userStateService.setUserState(telegramId.toString(), 'waiting_verification_code', stateData);
+
   // Create verification link with query parameters
   const verificationLink = `${env.BASE_URL}/telegram/verify?membership_number=${encodeURIComponent(member.membership_number)}&telegram_id=${telegramId}&telegram_username=${encodeURIComponent(username || '')}`;
 
-  // Send verification email
-  await emailService.sendVerificationEmail(member.email, verificationLink);
+  // Send verification email with code
+  await emailService.sendVerificationEmail(member.email, verificationLink, verificationCode);
   
   // Show masked email to user
   const maskedEmail = maskEmail(member.email);
   
   await telegramService.sendMessage(
     telegramId,
-    `Verification email has been sent to ${escapeMarkdownV2(maskedEmail)}, Please check your email and click the verification link to complete the registration`
+    `Verification email has been sent to ${escapeMarkdownV2(maskedEmail)}\n\nYou can either:\n1\\. Enter the 6\\-digit code from the email here in the chat\n2\\. Click the verification link in the email\n\nThe code will expire in 10 minutes`
   );
+}
 
-  // Clear state after processing
+// Helper function to handle verification code input
+async function handleVerificationCodeInput(
+  code: string,
+  telegramId: number,
+  username: string | undefined,
+  memberSheetServices: MemberSheetServices,
+  telegramService: TelegramService,
+  userStateService: TelegramUserStateService,
+  env: Environment
+) {
+  // Get the stored verification data from notes
+  const stateNotes = await userStateService.getUserStateNotes(telegramId.toString());
+  
+  if (!stateNotes) {
+    await telegramService.sendMessage(
+      telegramId,
+      'Verification session expired or not found\\. Please use /verify to start again'
+    );
+    await userStateService.clearUserState(telegramId.toString());
+    return;
+  }
+
+  // Parse stored data: code|membership_number|username
+  const [storedCode, membershipNumber, storedUsername] = stateNotes.split('|');
+  
+  // Validate code
+  if (code !== storedCode) {
+    await telegramService.sendMessage(
+      telegramId,
+      'Invalid verification code\\. Please check and try again, or use the link from your email\n\nUse /verify to request a new code'
+    );
+    // Don't clear state - let user try again or wait for timeout
+    return;
+  }
+
+  // Code is correct - proceed with verification
+  const member = await memberSheetServices.getMemberByMembershipNumber(membershipNumber);
+  
+  if (!member) {
+    await telegramService.sendMessage(
+      telegramId,
+      'Member not found\\. Please contact support'
+    );
+    await userStateService.clearUserState(telegramId.toString());
+    return;
+  }
+
+  // Check if this telegram_id is already registered to any user
+  const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId.toString());
+  if (existingMember) {
+    await telegramService.sendMessage(
+      telegramId,
+      'This Telegram account is already registered\\. Please contact your admin'
+    );
+    await userStateService.clearUserState(telegramId.toString());
+    return;
+  }
+
+  // Update member with Telegram information
+  await memberSheetServices.updateMember({
+    membership_number: membershipNumber,
+    telegram_id: telegramId.toString(),
+    telegram_username: username || storedUsername || ''
+  });
+
+  // Clear user state since they're now registered
   await userStateService.clearUserState(telegramId.toString());
+
+  // Send confirmation message
+  await telegramService.sendMessage(
+    telegramId,
+    `✅ Verification successful\\!\n\nYou are now registered to receive messages from our organization\\.\n\nYour membership: ${escapeMarkdownV2(member.latin_name)} \\- ${escapeMarkdownV2(membershipNumber)}\n\nUse /help to see available commands`
+  );
 }
 
 telegram.get('/verify', async (c) => {
