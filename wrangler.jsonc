@@ -20,13 +20,13 @@
     {
       "binding": "DB",
       "database_name": "telegram-membership-bot-db",
-      "database_id": "xxxxxx-xxxxxx-xxx-xxxx-xxxxxx"
+      "database_id": "2795110a-4cb1-45f5-867a-fc3f81dcf0c4"
     }
   ],
   "vars": {
     "SMTP_HOST": "smtp.gmail.com",
     "SMTP_PORT": "587",
     "SMTP_USER": "ibtikar.org@gmail.com",
-    "BASE_URL": "https://telegram-membership-bot.******.workers.dev"
+    "BASE_URL": "https://telegram-membership-bot.ctf090280.workers.dev"
   }
 }
