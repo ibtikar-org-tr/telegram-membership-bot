@@ -1,4 +1,4 @@
-import { Environment, TelegramUpdate, SendMessageRequest, InlineKeyboardButton, InlineKeyboardMarkup } from '../types';
+import { Environment, TelegramUpdate, SendMessageRequest, SendPhotoRequest, InlineKeyboardButton, InlineKeyboardMarkup } from '../types';
 // import { escapeMarkdownV2 } from '../utils/helpers';
 
 export class TelegramService {
@@ -46,6 +46,47 @@ export class TelegramService {
     }
   }
 
+  async sendPhoto(chatId: number | string, photo: string | Blob, caption?: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
+    const url = `https://api.telegram.org/bot${this.botToken}/sendPhoto`;
+
+    console.log('Sending photo to', chatId, 'with caption:', caption);
+    
+    const form = new FormData();
+    form.append('chat_id', chatId.toString());
+    
+    if (typeof photo === 'string') {
+      // Photo is a URL or file_id
+      form.append('photo', photo);
+    } else {
+      // Photo is a Blob/File
+      form.append('photo', photo, 'photo.jpg');
+    }
+
+    if (caption) {
+      form.append('caption', caption);
+      if (!parseMode) {
+        parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+      }
+      form.append('parse_mode', parseMode);
+    }
+
+    if (inlineKeyboard && inlineKeyboard.length > 0) {
+      form.append('reply_markup', JSON.stringify({
+        inline_keyboard: inlineKeyboard
+      }));
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Telegram API error: ${response.status} ${error}`);
+    }
+  }
+
   async sendBulkMessage(chatIds: (number | string)[], text: string, parseMode?: string): Promise<void> {
     const promises = chatIds.map(chatId => 
       this.sendMessage(chatId, text, parseMode).catch(error => {
@@ -67,6 +108,18 @@ export class TelegramService {
     ]);
 
     await this.sendMessage(chatId, text, parseMode, inlineKeyboard);
+  }
+
+  async sendPhotoWithBoxes(chatId: number | string, photo: string | Blob, caption: string, boxes: Array<{text: string, link: string}>, parseMode?: string): Promise<void> {
+    // Create inline keyboard from boxes
+    const inlineKeyboard: InlineKeyboardButton[][] = boxes.map(box => [
+      {
+        text: box.text,
+        url: box.link
+      }
+    ]);
+
+    await this.sendPhoto(chatId, photo, caption, parseMode, inlineKeyboard);
   }
 
   async setWebhook(webhookUrl: string): Promise<void> {

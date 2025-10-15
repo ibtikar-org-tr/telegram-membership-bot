@@ -71,7 +71,44 @@ api.post('/send-message', async (c) => {
 
 api.post('/notify-member', async (c) => {
   try {
-    const { member_id, message, boxes } = await c.req.json();
+    let member_id: string;
+    let message: string;
+    let boxes: Array<{ text: string, link: string }> | undefined;
+    let photo: string | Blob | undefined;
+
+    const contentType = c.req.header('Content-Type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle multipart form data
+      const formData = await c.req.formData();
+      
+      member_id = formData.get('member_id') as string;
+      message = formData.get('message') as string;
+      
+      const boxesStr = formData.get('boxes') as string;
+      if (boxesStr) {
+        try {
+          boxes = JSON.parse(boxesStr);
+        } catch (e) {
+          return c.json({ error: 'Invalid boxes format. Must be valid JSON string' }, 400);
+        }
+      }
+
+      const photoFile = formData.get('photo') as File;
+      if (photoFile) {
+        // Convert file to Blob
+        const arrayBuffer = await photoFile.arrayBuffer();
+        photo = new Blob([arrayBuffer], { type: photoFile.type || 'image/jpeg' });
+      }
+    } else {
+      // Handle JSON data
+      const { member_id: jsonMemberId, message: jsonMessage, boxes: jsonBoxes, photo: jsonPhoto } = await c.req.json();
+      
+      member_id = jsonMemberId;
+      message = jsonMessage;
+      boxes = jsonBoxes;
+      photo = jsonPhoto; // This should be a URL or file_id string
+    }
     
     if (!member_id) {
       return c.json({ error: 'member_id is required' }, 400);
@@ -81,7 +118,7 @@ api.post('/notify-member', async (c) => {
       return c.json({ error: 'message is required' }, 400);
     }
 
-    const result = await sendMessageToMember(c.env, member_id, message, boxes);
+    const result = await sendMessageToMember(c.env, member_id, message, boxes || [], photo);
 
     if (result.error) {
       return c.json({ error: result.error }, 400);

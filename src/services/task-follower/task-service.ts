@@ -533,7 +533,7 @@ export class TaskService {
 
     try {
       // Send to task owner using their membership_id (ownerID)
-      const result = await sendMessageToMember(this.env, task.ownerID, text, []);
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
       if (result.success) {
         console.log('New task notification sent to:', task.ownerName);
       } else {
@@ -562,7 +562,7 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, task.ownerID, text, []);
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
       if (result.success) {
         console.log('Reminder task notification sent to:', task.ownerName);
       } else {
@@ -593,7 +593,7 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, task.ownerID, text, []);
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
       if (result.success) {
         console.log('Late task notification sent to:', task.ownerName);
       } else {
@@ -623,7 +623,7 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, newTask.ownerID, text, []);
+      const result = await sendMessageToMember(this.env, newTask.ownerID, text, [], undefined);
       if (result.success) {
         console.log('Updated due date notification sent to:', newTask.ownerName);
       } else {
@@ -661,7 +661,7 @@ ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
 
     try {
       // Send to manager using their membership_id
-      const result = await sendMessageToMember(this.env, manager.number, text, []);
+      const result = await sendMessageToMember(this.env, manager.number, text, [], undefined);
       if (result.success) {
         console.log('Missing data notification sent to manager:', manager.name1);
       } else {

@@ -64,6 +64,14 @@ export interface SendMessageRequest {
   reply_markup?: InlineKeyboardMarkup;
 }
 
+export interface SendPhotoRequest {
+  chat_id: number | string;
+  photo: string | Blob;
+  caption?: string;
+  parse_mode?: string;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
 export interface TelegramUserState {
   telegram_id: string;
   state: string;
