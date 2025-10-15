@@ -3,6 +3,7 @@ export { BaseCrud, DatabaseConnection } from './base';
 export { ActivityCrud } from './task-follower/activity';
 export { SheetCrud } from './task-follower/sheet';
 export { TaskCrud } from './task-follower/task';
+export { AllMessagesPrivateCrud } from './all-messages-private';
 
 // Combined CRUD manager class
 import { ActivityCrud } from './task-follower/activity';

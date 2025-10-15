@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS telegram_user_states (
     modified_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- All Private Messages table
+CREATE TABLE IF NOT EXISTS all_messages_private (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    message_json TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_activities_manager_id ON activities(managerID);
 CREATE INDEX IF NOT EXISTS idx_activities_project_name ON activities(projectName);
@@ -72,6 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_project_name ON tasks(projectName);
 CREATE INDEX IF NOT EXISTS idx_telegram_user_states_telegram_id ON telegram_user_states(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_telegram_user_states_state ON telegram_user_states(state);
 CREATE INDEX IF NOT EXISTS idx_telegram_user_states_modified_at ON telegram_user_states(modified_at);
+CREATE INDEX IF NOT EXISTS idx_all_messages_private_created_at ON all_messages_private(created_at);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 
