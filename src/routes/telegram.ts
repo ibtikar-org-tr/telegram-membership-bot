@@ -155,6 +155,16 @@ async function handleMembershipNumberInput(
     return;
   }
 
+  // Check if this membership number is already linked to another Telegram account
+  if (member.telegram_id && member.telegram_id !== telegramId.toString()) {
+    await telegramService.sendMessage(
+      telegramId,
+      'This membership number is already registered with another Telegram account, If you believe this is an error, please contact support for assistance'
+    );
+    await userStateService.clearUserState(telegramId.toString());
+    return;
+  }
+
   // Create verification link with query parameters
   const verificationLink = `${env.BASE_URL}/telegram/verify?membership_number=${encodeURIComponent(member.membership_number)}&telegram_id=${telegramId}&telegram_username=${encodeURIComponent(username || '')}`;
 
