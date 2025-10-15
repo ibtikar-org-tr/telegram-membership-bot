@@ -9,6 +9,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      SMTP_USER: ${{ vars.SMTP_USER }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      MEMBER_GOOGLE_SHEET_INDEX: ${{ vars.MEMBER_GOOGLE_SHEET_INDEX }}
+      MEMBER_GOOGLE_SHEET_ID: ${{ vars.MEMBER_GOOGLE_SHEET_ID }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
