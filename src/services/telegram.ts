@@ -147,7 +147,8 @@ export class TelegramService {
 
 Welcome to our membership bot\\! Here are the available commands:
 
-🔹 */start* \\- Begin registration or view registration status
+🔹 */start* \\- Show welcome message and policy information
+🔹 */verify* \\- Begin membership verification process
 🔹 */help* \\- Show this help menu
 
 If you need assistance, please contact our support team\\.
@@ -156,5 +157,34 @@ _This bot is used for membership verification and notifications\\._
     `;
 
     await this.sendMessage(chatId, helpText.trim());
+  }
+
+  async sendWelcomeMessage(chatId: number | string): Promise<void> {
+    const welcomeText = `
+*Welcome to Our Organization\\!* 🎉
+
+Thank you for your interest in connecting with us through Telegram\\.
+
+*About This Bot*
+This bot is designed to verify your membership and keep you updated with important notifications and announcements from our organization\\.
+
+*Privacy Notice*
+• We collect usage information to improve the bot's performance and user experience\\.
+• By using this bot, you consent to the collection and use of your information as described in this notice\\.
+• To learn more about our privacy policy, please visit our [website](https://ibtikar.org.tr) or contact support\\.
+
+*How to Get Started*
+1\\. Use the */verify* command to begin the verification process
+2\\. Provide your membership number
+3\\. Check your registered email for a verification link
+4\\. Click the link to complete the verification
+
+*Need Help?*
+Use the */help* command to see all available commands\\.
+
+Welcome aboard\\! 🚀
+    `;
+
+    await this.sendMessage(chatId, welcomeText.trim());
   }
 }

@@ -41,6 +41,12 @@ telegram.post('/webhook', async (c) => {
 
     // Handle /start command
     if (text === '/start') {
+      await telegramService.sendWelcomeMessage(telegramId);
+      return c.json({ ok: true });
+    }
+
+    // Handle /verify command
+    if (text === '/verify') {
       // Check if user is already registered
       const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId.toString());
       
@@ -49,7 +55,7 @@ telegram.post('/webhook', async (c) => {
         await userStateService.clearUserState(telegramId.toString());
         await telegramService.sendMessage(
           telegramId,
-          `Welcome back, ${escapeMarkdownV2(existingMember.latin_name)}, You are already registered with membership number ${existingMember.membership_number}\n\nUse /help to see available commands`
+          `You are already registered with membership number ${existingMember.membership_number}\n\nName: ${escapeMarkdownV2(existingMember.latin_name)}\n\nUse /help to see available commands`
         );
         return c.json({ ok: true });
       } else {
@@ -57,7 +63,7 @@ telegram.post('/webhook', async (c) => {
         await userStateService.setUserState(telegramId.toString(), 'waiting_membership_number');
         await telegramService.sendMessage(
           telegramId,
-          `Welcome, Please provide your membership number to verify your membership`
+          `Please provide your membership number to verify your membership`
         );
         return c.json({ ok: true });
       }
