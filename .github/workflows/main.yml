@@ -17,6 +17,7 @@ jobs:
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
       MEMBER_GOOGLE_SHEET_INDEX: ${{ vars.MEMBER_GOOGLE_SHEET_INDEX }}
       MEMBER_GOOGLE_SHEET_ID: ${{ vars.MEMBER_GOOGLE_SHEET_ID }}
+      MEMBER_GOOGLE_SHEET_PAGE_NAME: ${{ vars.MEMBER_GOOGLE_SHEET_PAGE_NAME }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

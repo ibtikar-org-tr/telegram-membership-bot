@@ -206,7 +206,7 @@ telegram.get('/verify', async (c) => {
     // Send confirmation message
     await telegramService.sendMessage(
       parseInt(telegramId),
-      `Verification successful, You are now registered to receive messages from our organization,\n\nYour membership: ${escapeMarkdownV2(member.latin_name)} - ${escapeMarkdownV2(membershipNumber)}\n\nUse /help to see available commands`
+      `Verification successful, You are now registered to receive messages from our organization,\n\nYour membership: ${escapeMarkdownV2(member.latin_name)} , ${escapeMarkdownV2(membershipNumber)}\n\nUse /help to see available commands`
     );
 
     return c.html(`
