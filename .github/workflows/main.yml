@@ -72,6 +72,7 @@ jobs:
         run: |
           echo "${{ secrets.SECRET_KEY }}" | wrangler secret put SECRET_KEY
           echo "${process.env.MEMBER_GOOGLE_SHEET_ID}" | wrangler secret put MEMBER_GOOGLE_SHEET_ID
+          echo "${process.env.MEMBER_GOOGLE_SHEET_PAGE_NAME}" | wrangler secret put MEMBER_GOOGLE_SHEET_PAGE_NAME
           echo "${{ secrets.SMTP_PASS }}" | wrangler secret put SMTP_PASS
           echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" | wrangler secret put TELEGRAM_BOT_TOKEN
           # Handle JSON secret properly by writing to temp file first

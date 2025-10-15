@@ -66,14 +66,14 @@ export class MemberSheetServices {
     
     if (memberUpdate.telegram_id) {
       updates.push({
-        range: `Sheet1!${this.googleSheetsService.getColumnLetter(this.sheetIndex.telegram_id)}${memberIndex + 2}`,
+        range: `${this.env.MEMBER_GOOGLE_SHEET_PAGE_NAME}!${this.googleSheetsService.getColumnLetter(this.sheetIndex.telegram_id)}${memberIndex + 2}`,
         values: [[memberUpdate.telegram_id]]
       });
     }
     
     if (memberUpdate.telegram_username) {
       updates.push({
-        range: `Sheet1!${this.googleSheetsService.getColumnLetter(this.sheetIndex.telegram_username)}${memberIndex + 2}`,
+        range: `${this.env.MEMBER_GOOGLE_SHEET_PAGE_NAME}!${this.googleSheetsService.getColumnLetter(this.sheetIndex.telegram_username)}${memberIndex + 2}`,
         values: [[memberUpdate.telegram_username]]
       });
     }
