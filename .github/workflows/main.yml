@@ -40,7 +40,7 @@ jobs:
             content = content.replace(/"SMTP_PORT":\s*"[^"]*"/, `"SMTP_PORT": "${process.env.SMTP_PORT}"`);
             content = content.replace(/"SMTP_USER":\s*"[^"]*"/, `"SMTP_USER": "${process.env.SMTP_USER}"`);
 
-            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `$1${process.env.D1_DATABASE_ID}$2`);
+            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `"database_id": "${process.env.D1_DATABASE_ID}"`);
                     
             // Write back the modified content
             fs.writeFileSync('wrangler.jsonc', content);
