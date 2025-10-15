@@ -4,6 +4,8 @@ import { MemberSheetServices } from '../services/membership-manager/member-sheet
 import { TelegramService } from '../services/telegram';
 import { EmailService } from '../services/email';
 import { TelegramUserStateService } from '../crud/membership-manager/telegram-user-state';
+import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
+import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
 
 const telegram = new Hono<{ Bindings: Environment }>();
@@ -25,6 +27,16 @@ telegram.post('/webhook', async (c) => {
     const telegramId = message.from.id;
     const username = message.from.username;
     const text = message.text || '';
+
+    // Store all received messages in database
+    try {
+      const db = new D1DatabaseConnection(c.env.DB);
+      const messagesCrud = new AllMessagesPrivateCrud(db);
+      await messagesCrud.storeMessage(update.message);
+    } catch (storageError) {
+      // Log error but don't fail the request - message processing should continue
+      console.error('Failed to store message:', storageError);
+    }
 
     const telegramService = new TelegramService(c.env);
     const memberSheetServices = new MemberSheetServices(c.env);
