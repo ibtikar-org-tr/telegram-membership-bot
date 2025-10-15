@@ -4,7 +4,6 @@ import { MemberSheetServices } from '../services/membership-manager/member-sheet
 import { TelegramService } from '../services/telegram';
 import { authMiddleware } from '../middleware/auth';
 import { sendMessageToMember } from '../services/membership-manager/member-services';
-import { escapeMarkdownV2 } from '../utils/helpers';
 
 const api = new Hono<{ Bindings: Environment }>();
 
@@ -81,10 +80,8 @@ api.post('/notify-member', async (c) => {
     if (!message) {
       return c.json({ error: 'message is required' }, 400);
     }
-    
-    const escapedMessage = escapeMarkdownV2(message);
-    
-    const result = await sendMessageToMember(c.env, member_id, escapedMessage, boxes);
+
+    const result = await sendMessageToMember(c.env, member_id, message, boxes);
 
     if (result.error) {
       return c.json({ error: result.error }, 400);
