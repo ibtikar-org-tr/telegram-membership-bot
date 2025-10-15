@@ -39,6 +39,8 @@ jobs:
             content = content.replace(/"SMTP_HOST":\s*"[^"]*"/, `"SMTP_HOST": "${process.env.SMTP_HOST}"`);
             content = content.replace(/"SMTP_PORT":\s*"[^"]*"/, `"SMTP_PORT": "${process.env.SMTP_PORT}"`);
             content = content.replace(/"SMTP_USER":\s*"[^"]*"/, `"SMTP_USER": "${process.env.SMTP_USER}"`);
+
+            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `$1${process.env.D1_DATABASE_ID}$2`);
                     
             // Write back the modified content
             fs.writeFileSync('wrangler.jsonc', content);
@@ -61,8 +63,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           echo "${{ secrets.SECRET_KEY }}" | wrangler secret put SECRET_KEY
-          echo "${{ secrets.GOOGLE_SHEET_INDEX }}" | wrangler secret put GOOGLE_SHEET_INDEX
-          echo "${{ secrets.MEMBER_GOOGLE_SHEET_ID }}" | wrangler secret put MEMBER_GOOGLE_SHEET_ID
+          echo "${process.env.MEMBER_GOOGLE_SHEET_INDEX}" | wrangler secret put GOOGLE_SHEET_INDEX
+          echo "${process.env.MEMBER_GOOGLE_SHEET_ID}" | wrangler secret put MEMBER_GOOGLE_SHEET_ID
           echo "${{ secrets.SMTP_PASS }}" | wrangler secret put SMTP_PASS
           echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" | wrangler secret put TELEGRAM_BOT_TOKEN
           # Handle JSON secret properly by writing to temp file first
