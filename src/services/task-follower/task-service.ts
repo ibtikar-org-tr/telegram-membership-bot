@@ -623,7 +623,8 @@ export class TaskService {
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const day = String(dateObj.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // return `${year}-${month}-${day}`;
+    return `${day}-${month}-${year}`; // rtl format
   }
 
   private async sendNewTask(task: TaskModel): Promise<void> {
@@ -786,7 +787,7 @@ export class TaskService {
 ⚠️ *بيانات ناقصة في المهمة*
 
 🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
-📍 *الصف:* ${escapeMarkdownV2(task.row_number?.toString() || '')}
+📍 *السّطر:* ${escapeMarkdownV2(task.row_number?.toString() || '')}
 
 ❌ *البيانات الناقصة:*
 ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
