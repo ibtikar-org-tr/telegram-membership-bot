@@ -76,3 +76,5 @@ export class CloudflareAIService {
     }
   }
 }
+
+export default CloudflareAIService;
