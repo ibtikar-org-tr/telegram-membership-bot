@@ -1,4 +1,4 @@
-import { Environment } from '../types';
+import { Environment } from '../../types';
 
 export interface DeepSeekMessage {
   role: 'system' | 'user' | 'assistant';

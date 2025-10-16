@@ -7,7 +7,7 @@ import { TelegramUserStateService } from '../crud/membership-manager/telegram-us
 import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
-import { DeepSeekService } from '../services/deepseek';
+import { DeepSeekService } from '../services/ai-services/deepseek';
 import { getSystemPrompt } from '../config/ai-config';
 
 const telegram = new Hono<{ Bindings: Environment }>();
