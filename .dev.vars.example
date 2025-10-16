@@ -12,3 +12,4 @@ SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_app_password_here
 BASE_URL=http://localhost:8787
+DEEPSEEK_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
