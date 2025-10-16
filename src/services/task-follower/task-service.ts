@@ -613,6 +613,19 @@ export class TaskService {
   }
 
   // Notification methods using Telegram instead of email
+  private formatDate(date: Date | string | null | undefined): string {
+    if (!date) return 'غير محدد';
+    
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return 'غير محدد';
+    
+    // Format as YYYY-MM-DD
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   private async sendNewTask(task: TaskModel): Promise<void> {
     const managerContact = task.manager_telegram_username 
       ? `@${escapeMarkdownV2(task.manager_telegram_username)}`
@@ -623,7 +636,7 @@ export class TaskService {
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
 ⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
-📅 *آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
+📅 *آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
@@ -660,7 +673,7 @@ export class TaskService {
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
 ⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
-📅 *آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
+📅 *آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
@@ -696,7 +709,7 @@ export class TaskService {
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
 ⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
-📅 *كان آخر موعد للتّسليم:* ${task.dueDate ? escapeMarkdownV2(task.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
+📅 *كان آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
@@ -734,8 +747,8 @@ export class TaskService {
 
 📋 *المهمّة:* ${escapeMarkdownV2(newTask.taskText)}
 ⚡ *الاستعجاليّة:* ${escapeMarkdownV2(newTask.priority)}
-📅 *الموعد الجديد:* ${newTask.dueDate ? escapeMarkdownV2(newTask.dueDate.toLocaleDateString('ar')) : 'غير محدد'}
-📅 *الموعد السابق:* ${oldTask.dueDate ? escapeMarkdownV2(new Date(oldTask.dueDate).toLocaleDateString('ar')) : 'غير محدد'}
+📅 *الموعد الجديد:* ${escapeMarkdownV2(this.formatDate(newTask.dueDate))}
+📅 *الموعد السابق:* ${escapeMarkdownV2(this.formatDate(oldTask.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(newTask.notes || 'لا توجد ملاحظات')}
 
