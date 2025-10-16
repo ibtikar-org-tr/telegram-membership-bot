@@ -12,6 +12,7 @@ export interface Environment {
   SMTP_PASS: string;
   BASE_URL: string;
   DEEPSEEK_API_KEY: string;
+  AI: any; // Cloudflare AI binding
 }
 
 export interface MemberGoogleSheetIndex { // The main Google Sheet (members sheet)
