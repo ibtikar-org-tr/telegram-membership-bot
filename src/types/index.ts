@@ -11,6 +11,7 @@ export interface Environment {
   SMTP_USER: string;
   SMTP_PASS: string;
   BASE_URL: string;
+  DEEPSEEK_API_KEY: string;
 }
 
 export interface MemberGoogleSheetIndex { // The main Google Sheet (members sheet)

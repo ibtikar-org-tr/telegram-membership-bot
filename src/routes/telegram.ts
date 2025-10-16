@@ -7,6 +7,7 @@ import { TelegramUserStateService } from '../crud/membership-manager/telegram-us
 import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
+import { DeepSeekService } from '../services/deepseek';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
@@ -127,8 +128,22 @@ telegram.post('/webhook', async (c) => {
 
       case 'normal':
       default:
-        // Normal state - show help menu for any text
-        await telegramService.sendHelpMessage(telegramId);
+        // Normal state - handle with AI for non-command messages
+        if (!text.startsWith('/')) {
+          try {
+            const deepseekService = new DeepSeekService(c.env);
+            const systemPrompt = 'You are a helpful assistant for a ibtikar asssembly telegram bot. Be friendly, concise, and helpful. If users ask about membership verification or commands, guide them to use /help. Also everything related to ibtikar assembly is on website ibtikar.org.tr.';
+            const aiResponse = await deepseekService.chat(text, systemPrompt);
+            await telegramService.sendMessage(telegramId, escapeMarkdownV2(aiResponse));
+          } catch (aiError) {
+            console.error('AI error:', aiError);
+            // Fallback to help message if AI fails
+            await telegramService.sendHelpMessage(telegramId);
+          }
+        } else {
+          // For unknown commands, show help menu
+          await telegramService.sendHelpMessage(telegramId);
+        }
         break;
     }
 
