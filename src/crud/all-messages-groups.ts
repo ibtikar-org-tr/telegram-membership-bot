@@ -17,8 +17,13 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   ): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const message_json = JSON.stringify(messageData);
+      const chat_id = messageData.chat?.id?.toString() || '';
+      const user_id = messageData.from?.id?.toString() || '';
+      
       const data: AllMessagesGroupsModel = {
         message_json,
+        chat_id,
+        user_id,
         notes: notes || null
       };
       
@@ -38,6 +43,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   async getMessageById(id: string): Promise<{ 
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   } | null> {
@@ -48,6 +55,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       return {
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       };
@@ -65,6 +74,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   async getMessages(limit?: number, offset?: number): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
@@ -74,6 +85,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       return results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -91,6 +104,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   async getRecentMessages(limit: number = 50, offset: number = 0): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
@@ -103,6 +118,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       return result.results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -137,6 +154,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   async searchMessages(searchTerm: string, limit: number = 50): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
@@ -154,6 +173,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       return result.results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -175,6 +196,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   ): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
@@ -192,6 +215,8 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       return result.results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -237,25 +262,29 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   ): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
     try {
-      // Get messages from today where the chat.id matches the chatId
+      // Get messages from today where the chat_id matches
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND json_extract(message_json, '$.chat.id') = ?
+        AND chat_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;
-      const result = await this.db.prepare(query).bind(chatId, limit).all<AllMessagesGroups>();
+      const result = await this.db.prepare(query).bind(chatId.toString(), limit).all<AllMessagesGroups>();
       
       if (!result.success) return [];
 
       return result.results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -278,24 +307,28 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   ): Promise<Array<{
     id: string;
     message: any;
+    chat_id: string;
+    user_id: string;
     notes: string | null;
     created_at: string;
   }>> {
     try {
       const query = `
         SELECT * FROM ${this.tableName} 
-        WHERE json_extract(message_json, '$.chat.id') = ?
-        AND json_extract(message_json, '$.from.id') = ?
+        WHERE chat_id = ?
+        AND user_id = ?
         ORDER BY created_at DESC 
         LIMIT ?
       `;
-      const result = await this.db.prepare(query).bind(chatId, userId, limit).all<AllMessagesGroups>();
+      const result = await this.db.prepare(query).bind(chatId.toString(), userId.toString(), limit).all<AllMessagesGroups>();
       
       if (!result.success) return [];
 
       return result.results.map(result => ({
         id: result.id,
         message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -324,11 +357,11 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND json_extract(message_json, '$.chat.id') = ?
+        AND chat_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;
-      const result = await this.db.prepare(query).bind(chatId, limit).all<AllMessagesGroups>();
+      const result = await this.db.prepare(query).bind(chatId.toString(), limit).all<AllMessagesGroups>();
       
       if (!result.success) return [];
 
@@ -359,7 +392,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
    * @param limit Maximum number of groups to retrieve
    */
   async getActiveGroups(limit: number = 50): Promise<Array<{
-    chat_id: number;
+    chat_id: string;
     chat_title: string;
     message_count: number;
     last_message_at: string;
@@ -367,7 +400,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     try {
       const query = `
         SELECT 
-          json_extract(message_json, '$.chat.id') as chat_id,
+          chat_id,
           json_extract(message_json, '$.chat.title') as chat_title,
           COUNT(*) as message_count,
           MAX(created_at) as last_message_at
@@ -377,7 +410,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         LIMIT ?
       `;
       const result = await this.db.prepare(query).bind(limit).all<{
-        chat_id: number;
+        chat_id: string;
         chat_title: string;
         message_count: number;
         last_message_at: string;
@@ -406,13 +439,13 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       const query = `
         SELECT 
           COUNT(*) as total_messages,
-          COUNT(DISTINCT json_extract(message_json, '$.from.id')) as unique_users,
+          COUNT(DISTINCT user_id) as unique_users,
           MIN(created_at) as first_message_at,
           MAX(created_at) as last_message_at
         FROM ${this.tableName}
-        WHERE json_extract(message_json, '$.chat.id') = ?
+        WHERE chat_id = ?
       `;
-      const result = await this.db.prepare(query).bind(chatId).first<{
+      const result = await this.db.prepare(query).bind(chatId.toString()).first<{
         total_messages: number;
         unique_users: number;
         first_message_at: string | null;
@@ -433,6 +466,176 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         first_message_at: null,
         last_message_at: null
       };
+    }
+  }
+
+  /**
+   * Get messages by chat_id with pagination
+   * @param chatId The group's chat ID
+   * @param limit Number of messages to retrieve
+   * @param offset Offset for pagination
+   */
+  async getMessagesByChatId(
+    chatId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<Array<{
+    id: string;
+    message: any;
+    chat_id: string;
+    user_id: string;
+    notes: string | null;
+    created_at: string;
+  }>> {
+    try {
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE chat_id = ?
+        ORDER BY created_at DESC 
+        LIMIT ? OFFSET ?
+      `;
+      const result = await this.db.prepare(query).bind(chatId, limit, offset).all<AllMessagesGroups>();
+      
+      if (!result.success) return [];
+
+      return result.results.map(result => ({
+        id: result.id,
+        message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
+        notes: result.notes,
+        created_at: result.created_at
+      }));
+    } catch (error) {
+      console.error('Error getting messages by chat_id:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get messages by user_id across all groups with pagination
+   * @param userId The user's telegram ID
+   * @param limit Number of messages to retrieve
+   * @param offset Offset for pagination
+   */
+  async getMessagesByUserId(
+    userId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<Array<{
+    id: string;
+    message: any;
+    chat_id: string;
+    user_id: string;
+    notes: string | null;
+    created_at: string;
+  }>> {
+    try {
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE user_id = ?
+        ORDER BY created_at DESC 
+        LIMIT ? OFFSET ?
+      `;
+      const result = await this.db.prepare(query).bind(userId, limit, offset).all<AllMessagesGroups>();
+      
+      if (!result.success) return [];
+
+      return result.results.map(result => ({
+        id: result.id,
+        message: JSON.parse(result.message_json),
+        chat_id: result.chat_id,
+        user_id: result.user_id,
+        notes: result.notes,
+        created_at: result.created_at
+      }));
+    } catch (error) {
+      console.error('Error getting messages by user_id:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user activity statistics across all groups
+   * @param userId The user's telegram ID
+   */
+  async getUserActivityStats(userId: string): Promise<{
+    total_messages: number;
+    groups_count: number;
+    first_message_at: string | null;
+    last_message_at: string | null;
+  }> {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) as total_messages,
+          COUNT(DISTINCT chat_id) as groups_count,
+          MIN(created_at) as first_message_at,
+          MAX(created_at) as last_message_at
+        FROM ${this.tableName}
+        WHERE user_id = ?
+      `;
+      const result = await this.db.prepare(query).bind(userId).first<{
+        total_messages: number;
+        groups_count: number;
+        first_message_at: string | null;
+        last_message_at: string | null;
+      }>();
+      
+      return result || {
+        total_messages: 0,
+        groups_count: 0,
+        first_message_at: null,
+        last_message_at: null
+      };
+    } catch (error) {
+      console.error('Error getting user activity stats:', error);
+      return {
+        total_messages: 0,
+        groups_count: 0,
+        first_message_at: null,
+        last_message_at: null
+      };
+    }
+  }
+
+  /**
+   * Get top active users in a specific group
+   * @param chatId The group's chat ID
+   * @param limit Number of top users to retrieve
+   */
+  async getTopUsersInGroup(
+    chatId: string,
+    limit: number = 10
+  ): Promise<Array<{
+    user_id: string;
+    message_count: number;
+    last_message_at: string;
+  }>> {
+    try {
+      const query = `
+        SELECT 
+          user_id,
+          COUNT(*) as message_count,
+          MAX(created_at) as last_message_at
+        FROM ${this.tableName}
+        WHERE chat_id = ?
+        GROUP BY user_id
+        ORDER BY message_count DESC
+        LIMIT ?
+      `;
+      const result = await this.db.prepare(query).bind(chatId, limit).all<{
+        user_id: string;
+        message_count: number;
+        last_message_at: string;
+      }>();
+      
+      if (!result.success) return [];
+
+      return result.results;
+    } catch (error) {
+      console.error('Error getting top users in group:', error);
+      return [];
     }
   }
 }
