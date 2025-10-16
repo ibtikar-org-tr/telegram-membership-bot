@@ -1,4 +1,4 @@
-import { Member, MemberUpdate } from '../../types/member';
+import { Member, MemberUpdate } from '../../types/membership-manager';
 import { Environment, MemberGoogleSheetIndex } from '../../types';
 import { GoogleSheetsService } from '../google-sheets';
 
