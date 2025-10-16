@@ -225,4 +225,135 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
       };
     }
   }
+
+  /**
+   * Get today's messages for a specific user (by telegram_id)
+   * @param telegramId The user's telegram ID
+   * @param limit Maximum number of messages to retrieve
+   */
+  async getTodaysMessagesForUser(
+    telegramId: number,
+    limit: number = 50
+  ): Promise<Array<{
+    id: string;
+    message: any;
+    notes: string | null;
+    created_at: string;
+  }>> {
+    try {
+      // Get messages from today where the from.id matches the telegramId
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE DATE(created_at) = DATE('now')
+        AND json_extract(message_json, '$.from.id') = ?
+        ORDER BY created_at ASC 
+        LIMIT ?
+      `;
+      const result = await this.db.prepare(query).bind(telegramId, limit).all<AllMessagesPrivate>();
+      
+      if (!result.success) return [];
+
+      return result.results.map(result => ({
+        id: result.id,
+        message: JSON.parse(result.message_json),
+        notes: result.notes,
+        created_at: result.created_at
+      }));
+    } catch (error) {
+      console.error('Error getting today\'s messages for user:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Store a bot response (AI reply) for conversation history
+   * @param telegramId The user's telegram ID
+   * @param userMessageText The user's original message
+   * @param botResponse The bot's AI-generated response
+   */
+  async storeBotResponse(
+    telegramId: number,
+    userMessageText: string,
+    botResponse: string
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      // Store bot response as a special message format
+      const botMessageData = {
+        from: {
+          id: 0, // Bot ID
+          is_bot: true,
+          first_name: 'Bot'
+        },
+        chat: {
+          id: telegramId,
+          type: 'private'
+        },
+        text: botResponse,
+        reply_to_message: {
+          text: userMessageText
+        }
+      };
+      
+      return await this.storeMessage(botMessageData, 'bot_response');
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Get today's conversation for a user (both user messages and bot responses)
+   * Returns in chronological order with role identified
+   * @param telegramId The user's telegram ID
+   * @param limit Maximum number of messages to retrieve
+   */
+  async getTodaysConversation(
+    telegramId: number,
+    limit: number = 100
+  ): Promise<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    created_at: string;
+  }>> {
+    try {
+      // Get all messages from today related to this user
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE DATE(created_at) = DATE('now')
+        AND (
+          json_extract(message_json, '$.from.id') = ?
+          OR (
+            json_extract(message_json, '$.chat.id') = ?
+            AND notes = 'bot_response'
+          )
+        )
+        ORDER BY created_at ASC 
+        LIMIT ?
+      `;
+      const result = await this.db.prepare(query).bind(telegramId, telegramId, limit).all<AllMessagesPrivate>();
+      
+      if (!result.success) return [];
+
+      return result.results
+        .map(result => {
+          const message = JSON.parse(result.message_json);
+          const isBotResponse = result.notes === 'bot_response';
+          const text = message.text;
+          
+          if (!text) return null;
+          
+          return {
+            role: isBotResponse ? 'assistant' as const : 'user' as const,
+            content: text,
+            created_at: result.created_at
+          };
+        })
+        .filter((msg): msg is NonNullable<typeof msg> => msg !== null);
+    } catch (error) {
+      console.error('Error getting today\'s conversation:', error);
+      return [];
+    }
+  }
 }

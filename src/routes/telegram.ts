@@ -138,10 +138,60 @@ telegram.post('/webhook', async (c) => {
               '_Thinking\\.\\.\\._'
             );
 
+            // Get today's conversation history for this user
+            const db = new D1DatabaseConnection(c.env.DB);
+            const messagesCrud = new AllMessagesPrivateCrud(db);
+            const todaysConversation = await messagesCrud.getTodaysConversation(telegramId, 100);
+
             const llmService = new LLMService(c.env);
-            // Use the system prompt from config file
-            const systemPrompt = getSystemPrompt();
-            const aiResponse = await llmService.chat(text, systemPrompt);
+            
+            // Build conversation history with today's messages
+            let aiResponse: string;
+            
+            if (todaysConversation.length > 0) {
+              // Create message history including system prompt and all of today's conversation
+              const conversationHistory: Array<{
+                role: 'system' | 'user' | 'assistant';
+                content: string;
+              }> = [];
+
+              // Add system prompt first
+              const systemPrompt = getSystemPrompt();
+              conversationHistory.push({
+                role: 'system',
+                content: systemPrompt
+              });
+
+              // Add today's conversation (already filtered to exclude commands)
+              for (const msg of todaysConversation) {
+                // Skip command messages
+                if (!msg.content.startsWith('/')) {
+                  conversationHistory.push({
+                    role: msg.role,
+                    content: msg.content
+                  });
+                }
+              }
+
+              // Add the current message if it's not already the last one
+              const lastMessage = todaysConversation[todaysConversation.length - 1];
+              if (!lastMessage || lastMessage.content !== text || lastMessage.role !== 'user') {
+                conversationHistory.push({
+                  role: 'user',
+                  content: text
+                });
+              }
+
+              // Use chatWithHistory to maintain context
+              aiResponse = await llmService.chatWithHistory(conversationHistory);
+            } else {
+              // No history - use simple chat
+              const systemPrompt = getSystemPrompt();
+              aiResponse = await llmService.chat(text, systemPrompt);
+            }
+
+            // Store the bot response for future conversation context
+            await messagesCrud.storeBotResponse(telegramId, text, aiResponse);
 
             // Edit the "Thinking..." message with the AI response
             if (thinkingMessageId) {
