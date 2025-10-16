@@ -182,17 +182,17 @@ export class TelegramService {
 
   async sendHelpMessage(chatId: number | string): Promise<void> {
     const helpText = `
-*Help Menu*
+*قائمة المساعدة*
 
-Welcome to our membership bot\\! Here are the available commands:
+مرحباً بك في بوت العضوية لدينا\\! إليك الأوامر المتاحة:
 
-🔹 */start* \\- Show welcome message and policy information
-🔹 */verify* \\- Begin membership verification process
-🔹 */help* \\- Show this help menu
+🔹 */start* \\- عرض رسالة الترحيب ومعلومات السياسة
+🔹 */verify* \\- بدء عملية التحقق من العضوية
+🔹 */help* \\- عرض قائمة المساعدة هذه
 
-If you need assistance, please contact our support team\\.
+إذا كنت بحاجة إلى مساعدة\\، يرجى الاتصال بفريق الدعم لدينا\\.
 
-_This bot is used for membership verification and notifications\\._
+_يُستخدم هذا البوت للتحقق من العضوية والإشعارات\\._
     `;
 
     await this.sendMessage(chatId, helpText.trim());
@@ -200,28 +200,28 @@ _This bot is used for membership verification and notifications\\._
 
   async sendWelcomeMessage(chatId: number | string): Promise<void> {
     const welcomeText = `
-*Welcome to Our Organization\\!* 🎉
+*مرحباً بك في منظمتنا\\!* 🎉
 
-Thank you for your interest in connecting with us through Telegram\\.
+شكراً لاهتمامك بالتواصل معنا عبر تيليجرام\\.
 
-*About This Bot*
-This bot is designed to verify your membership and keep you updated with important notifications and announcements from our organization\\.
+*حول هذا البوت*
+تم تصميم هذا البوت للتحقق من عضويتك وإبقائك على اطلاع بالإشعارات والإعلانات المهمة من منظمتنا\\.
 
-*Privacy Notice*
-• We collect usage information to improve the bot's performance and user experience\\.
-• By using this bot, you consent to the collection and use of your information as described in this notice\\.
-• To learn more about our privacy policy, please visit our [website](https://ibtikar.org.tr) or contact support\\.
+*إشعار الخصوصية*
+• نقوم بجمع معلومات الاستخدام لتحسين أداء البوت وتجربة المستخدم\\.
+• باستخدام هذا البوت\\، فإنك توافق على جمع معلوماتك واستخدامها كما هو موضح في هذا الإشعار\\.
+• لمعرفة المزيد حول سياسة الخصوصية الخاصة بنا\\، يرجى زيارة [موقعنا](https://ibtikar.org.tr) أو الاتصال بالدعم\\.
 
-*How to Get Started*
-1\\. Use the */verify* command to begin the verification process
-2\\. Provide your membership number
-3\\. Check your registered email for a verification link
-4\\. Click the link to complete the verification
+*كيفية البدء*
+1\\. استخدم الأمر */verify* لبدء عملية التحقق
+2\\. قدم رقم عضويتك
+3\\. تحقق من بريدك الإلكتروني المسجل للحصول على رابط التحقق
+4\\. انقر على الرابط لإكمال التحقق
 
-*Need Help?*
-Use the */help* command to see all available commands\\.
+*هل تحتاج إلى مساعدة؟*
+استخدم الأمر */help* لعرض جميع الأوامر المتاحة\\.
 
-Welcome aboard\\! 🚀
+مرحباً بك على متن الطائرة\\! 🚀
     `;
 
     await this.sendMessage(chatId, welcomeText.trim());

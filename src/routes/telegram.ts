@@ -75,7 +75,7 @@ telegram.post('/webhook', async (c) => {
         await userStateService.clearUserState(telegramId.toString());
         await telegramService.sendMessage(
           telegramId,
-          `You are already registered with membership number ${existingMember.membership_number}\n\nName: ${escapeMarkdownV2(existingMember.latin_name)}\n\nUse /help to see available commands`
+          `أنت مسجل بالفعل برقم العضوية ${existingMember.membership_number}\n\nالاسم: ${escapeMarkdownV2(existingMember.latin_name)}\n\nاستخدم /help لعرض الأوامر المتاحة`
         );
         return c.json({ ok: true });
       } else {
@@ -83,7 +83,7 @@ telegram.post('/webhook', async (c) => {
         await userStateService.setUserState(telegramId.toString(), 'waiting_membership_number');
         await telegramService.sendMessage(
           telegramId,
-          `Please provide your membership number to verify your membership`
+          `يرجى إدخال رقم العضوية للتحقق من عضويتك`
         );
         return c.json({ ok: true });
       }
@@ -136,7 +136,7 @@ telegram.post('/webhook', async (c) => {
             // Send "Thinking..."
             const thinkingMessageId = await telegramService.sendMessage(
               telegramId, 
-              '_Thinking\\.\\.\\._'
+              '_جارٍ التفكير\\.\\.\\._'
             );
 
             // Get today's conversation history for this user
@@ -269,7 +269,7 @@ async function handleMembershipNumberInput(
   if (!member) {
     await telegramService.sendMessage(
       telegramId,
-      'Membership number not found in our database, Please check your membership number and try again, or contact support,\n\nUse /help for available commands'
+      'رقم العضوية غير موجود في قاعدة البيانات\\. يرجى التحقق من رقم عضويتك والمحاولة مرة أخرى\\، أو الاتصال بالدعم\\.\n\nاستخدم /help للأوامر المتاحة'
     );
     // Clear state so user can try again or use other commands
     await userStateService.clearUserState(telegramId.toString());
@@ -280,7 +280,7 @@ async function handleMembershipNumberInput(
   if (!member.email) {
     await telegramService.sendMessage(
       telegramId,
-      'No email address found for this membership, Please contact support to update your email address'
+      'لم يتم العثور على عنوان بريد إلكتروني لهذه العضوية\\. يرجى الاتصال بالدعم لتحديث عنوان بريدك الإلكتروني'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -291,7 +291,7 @@ async function handleMembershipNumberInput(
   if (existingMember) {
     await telegramService.sendMessage(
       telegramId,
-      'This Telegram account is already registered, Please contact your admin if you need assistance'
+      'حساب تيليجرام هذا مسجل بالفعل\\. يرجى الاتصال بالمسؤول إذا كنت بحاجة إلى مساعدة'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -301,7 +301,7 @@ async function handleMembershipNumberInput(
   if (member.telegram_id && member.telegram_id !== telegramId.toString()) {
     await telegramService.sendMessage(
       telegramId,
-      'This membership number is already registered with another Telegram account, If you believe this is an error, please contact support for assistance'
+      'رقم العضوية هذا مسجل بالفعل مع حساب تيليجرام آخر\\. إذا كنت تعتقد أن هذا خطأ\\، يرجى الاتصال بالدعم للحصول على المساعدة'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -326,7 +326,7 @@ async function handleMembershipNumberInput(
   
   await telegramService.sendMessage(
     telegramId,
-    `Verification email has been sent to ${escapeMarkdownV2(maskedEmail)}\n\nYou can either:\n1\\. Enter the 6\\-digit code from the email here in the chat\n2\\. Click the verification link in the email\n\nThe code will expire in 10 minutes`
+    `تم إرسال بريد التحقق إلى ${escapeMarkdownV2(maskedEmail)}\n\nيمكنك:\n1\\. إدخال الرمز المكون من 6 أرقام من البريد الإلكتروني هنا في المحادثة\n2\\. النقر على رابط التحقق في البريد الإلكتروني\n\nسينتهي صلاحية الرمز خلال 10 دقائق`
   );
 }
 
@@ -346,7 +346,7 @@ async function handleVerificationCodeInput(
   if (!stateNotes) {
     await telegramService.sendMessage(
       telegramId,
-      'Verification session expired or not found\\. Please use /verify to start again'
+      'انتهت صلاحية جلسة التحقق أو لم يتم العثور عليها\\. يرجى استخدام /verify للبدء من جديد'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -359,7 +359,7 @@ async function handleVerificationCodeInput(
   if (code !== storedCode) {
     await telegramService.sendMessage(
       telegramId,
-      'Invalid verification code\\. Please check and try again, or use the link from your email\n\nUse /verify to request a new code'
+      'رمز التحقق غير صحيح\\. يرجى التحقق والمحاولة مرة أخرى\\، أو استخدام الرابط من بريدك الإلكتروني\n\nاستخدم /verify لطلب رمز جديد'
     );
     // Don't clear state - let user try again or wait for timeout
     return;
@@ -371,7 +371,7 @@ async function handleVerificationCodeInput(
   if (!member) {
     await telegramService.sendMessage(
       telegramId,
-      'Member not found\\. Please contact support'
+      'لم يتم العثور على العضو\\. يرجى الاتصال بالدعم'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -382,7 +382,7 @@ async function handleVerificationCodeInput(
   if (existingMember) {
     await telegramService.sendMessage(
       telegramId,
-      'This Telegram account is already registered\\. Please contact your admin'
+      'حساب تيليجرام هذا مسجل بالفعل\\. يرجى الاتصال بالمسؤول'
     );
     await userStateService.clearUserState(telegramId.toString());
     return;
@@ -401,7 +401,7 @@ async function handleVerificationCodeInput(
   // Send confirmation message
   await telegramService.sendMessage(
     telegramId,
-    `✅ Verification successful\\!\n\nYou are now registered to receive messages from our organization\\.\n\nYour membership: ${escapeMarkdownV2(member.latin_name)} \\- ${escapeMarkdownV2(membershipNumber)}\n\nUse /help to see available commands`
+    `✅ تم التحقق بنجاح\\!\n\nأنت الآن مسجل لتلقي الرسائل من منظمتنا\\.\n\nعضويتك: ${escapeMarkdownV2(member.latin_name)} \\- ${escapeMarkdownV2(membershipNumber)}\n\nاستخدم /help لعرض الأوامر المتاحة`
   );
 }
 
@@ -412,7 +412,7 @@ telegram.get('/verify', async (c) => {
     const telegramUsername = c.req.query('telegram_username') || '';
     
     if (!membershipNumber || !telegramId) {
-      return c.html('<h1>Invalid verification link</h1><p>Missing required parameters.</p>');
+      return c.html('<h1>رابط تحقق غير صالح</h1><p>المعاملات المطلوبة مفقودة.</p>');
     }
 
     const memberSheetServices = new MemberSheetServices(c.env);
@@ -422,13 +422,13 @@ telegram.get('/verify', async (c) => {
     // Check if the membership number exists
     const member = await memberSheetServices.getMemberByMembershipNumber(membershipNumber);
     if (!member) {
-      return c.html('<h1>Verification Failed</h1><p>Member not found. Please contact support.</p>');
+      return c.html('<h1>فشل التحقق</h1><p>لم يتم العثور على العضو. يرجى الاتصال بالدعم.</p>');
     }
 
     // Check if this telegram_id is already registered to any user
     const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId);
     if (existingMember) {
-      return c.html('<h1>User Already Exists</h1><p>This Telegram account is already registered. Please contact your admin.</p>');
+      return c.html('<h1>المستخدم موجود بالفعل</h1><p>حساب تيليجرام هذا مسجل بالفعل. يرجى الاتصال بالمسؤول.</p>');
     }
 
     // Update member with Telegram information
@@ -444,18 +444,18 @@ telegram.get('/verify', async (c) => {
     // Send confirmation message
     await telegramService.sendMessage(
       parseInt(telegramId),
-      `Verification successful, You are now registered to receive messages from our organization,\n\nYour membership: ${escapeMarkdownV2(member.latin_name)} , ${escapeMarkdownV2(membershipNumber)}\n\nUse /help to see available commands`
+      `تم التحقق بنجاح\\. أنت الآن مسجل لتلقي الرسائل من منظمتنا\\.\n\nعضويتك: ${escapeMarkdownV2(member.latin_name)} \\، ${escapeMarkdownV2(membershipNumber)}\n\nاستخدم /help لعرض الأوامر المتاحة`
     );
 
     return c.html(`
-      <h1>Verification Successful!</h1>
-      <p>Hello ${member.latin_name},</p>
-      <p>Your Telegram account has been successfully linked to your membership (${membershipNumber}).</p>
-      <p>You can now close this window and return to Telegram.</p>
+      <h1>تم التحقق بنجاح!</h1>
+      <p>مرحباً ${member.latin_name}،</p>
+      <p>تم ربط حساب تيليجرام الخاص بك بعضويتك (${membershipNumber}) بنجاح.</p>
+      <p>يمكنك الآن إغلاق هذه النافذة والعودة إلى تيليجرام.</p>
     `);
   } catch (error) {
     console.error('Verification error:', error);
-    return c.html('<h1>Verification Failed</h1><p>An error occurred during verification. Please try again or contact support.</p>');
+    return c.html('<h1>فشل التحقق</h1><p>حدث خطأ أثناء التحقق. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.</p>');
   }
 });
 
