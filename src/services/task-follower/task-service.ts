@@ -72,6 +72,8 @@ export class TaskService {
   }
 
   async createNewTask(task: TaskModel): Promise<Task | null> {
+    // Populate telegram IDs before creating
+    await this.populateTelegramIds(task);
     const result = await this.taskCrud.create(task);
     return result.success ? task : null;
   }
@@ -92,6 +94,8 @@ export class TaskService {
   }
 
   async updateTaskById(taskId: string, task: Partial<Task>): Promise<Task | null> {
+    // Populate telegram IDs before updating
+    await this.populateTelegramIds(task);
     const result = await this.taskCrud.update(taskId, task);
     if (result.success) {
       return await this.getTaskById(taskId);
@@ -381,6 +385,7 @@ export class TaskService {
               ownerName: record.owner || '',
               ownerEmail: contact.mail,
               ownerPhone: contact.phone,
+              managerID: manager.number, // Set manager's membership number
               managerName: manager.name1,
               points: record.points?.toString() || '',
               status: record.Status || '',
@@ -390,6 +395,9 @@ export class TaskService {
               notes: record.Notes || '',
               milestone: record.Milestone || ''
             });
+
+            // Populate telegram IDs from member sheet
+            await this.populateTelegramIds(taskObj);
 
             // Add to user list if task is active
             if (taskObj.ownerID && taskObj.ownerName && 
