@@ -29,6 +29,9 @@ export class TaskService {
   private googleSheetsService: GoogleSheetsService;
   private telegramService: TelegramService;
   private env: Environment;
+  private membersCache: Map<string, any> | null = null; // Cache for members by membership_number
+  private membersCacheTimestamp: number = 0;
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
   constructor(db: DatabaseConnection, env: Environment) {
     this.db = db;
@@ -41,16 +44,45 @@ export class TaskService {
   }
 
   /**
+   * Get or refresh the members cache
+   * @returns Map of membership_number to member data
+   */
+  private async getMembersCache(): Promise<Map<string, any>> {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (this.membersCache && (now - this.membersCacheTimestamp) < this.CACHE_TTL) {
+      return this.membersCache;
+    }
+    
+    // Fetch fresh data
+    const memberService = new MemberSheetServices(this.env);
+    const members = await memberService.getMembers();
+    
+    // Build cache map
+    this.membersCache = new Map();
+    for (const member of members) {
+      if (member.membership_number) {
+        this.membersCache.set(member.membership_number, member);
+      }
+    }
+    
+    this.membersCacheTimestamp = now;
+    return this.membersCache;
+  }
+
+  /**
    * Populate telegram IDs for a task based on membership numbers
    * @param task Task object to populate
    * @returns Task with populated telegram IDs
    */
   async populateTelegramIds(task: Partial<Task>): Promise<Partial<Task>> {
-    const memberService = new MemberSheetServices(this.env);
+    // Get cached members
+    const membersMap = await this.getMembersCache();
     
     // Populate owner telegram ID and username
     if (task.ownerID) {
-      const owner = await memberService.getMemberByMembershipNumber(task.ownerID);
+      const owner = membersMap.get(task.ownerID);
       if (owner?.telegram_id) {
         task.owner_telegram_id = owner.telegram_id;
       }
@@ -61,7 +93,7 @@ export class TaskService {
     
     // Populate manager telegram ID and username
     if (task.managerID) {
-      const manager = await memberService.getMemberByMembershipNumber(task.managerID);
+      const manager = membersMap.get(task.managerID);
       if (manager?.telegram_id) {
         task.manager_telegram_id = manager.telegram_id;
       }
@@ -545,18 +577,40 @@ export class TaskService {
     }
   }
 
-  // Check all sheets
+  // Check all sheets with better error handling and rate limiting
   async checkAllSheets(): Promise<void> {
     console.log('Starting check of all sheets');
     
-    const sheets = await this.sheetCrud.getAll();
-    for (const sheet of sheets) {
-      try {
-        console.log('Processing sheet:', sheet.sheetID);
-        await this.checkTasksFromSheet(sheet.sheetID);
-      } catch (error) {
-        console.error(`Error processing sheet ${sheet.sheetID}:`, error);
+    try {
+      // Pre-load members cache once for all sheets
+      await this.getMembersCache();
+      console.log('Members cache loaded successfully');
+      
+      const sheets = await this.sheetCrud.getAll();
+      let processedCount = 0;
+      let errorCount = 0;
+      
+      for (const sheet of sheets) {
+        try {
+          console.log('Processing sheet:', sheet.sheetID);
+          await this.checkTasksFromSheet(sheet.sheetID);
+          processedCount++;
+        } catch (error) {
+          errorCount++;
+          console.error(`Error processing sheet ${sheet.sheetID}:`, error);
+          
+          // If we hit a "Too many subrequests" error, log it and continue
+          if (error instanceof Error && error.message.includes('Too many subrequests')) {
+            console.error(`Subrequest limit reached at sheet ${sheet.sheetID}. Processed ${processedCount} sheets before error.`);
+            // Continue processing other sheets - they might still work
+          }
+        }
       }
+      
+      console.log(`Finished processing sheets. Success: ${processedCount}, Errors: ${errorCount}, Total: ${sheets.length}`);
+    } catch (error) {
+      console.error('Error in checkAllSheets:', error);
+      throw error;
     }
   }
 
@@ -582,8 +636,12 @@ export class TaskService {
 `;
 
     try {
+      // Get cached member to avoid extra API calls
+      const membersMap = await this.getMembersCache();
+      const cachedMember = membersMap.get(task.ownerID);
+      
       // Send to task owner using their membership_id (ownerID)
-      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('New task notification sent to:', task.ownerName);
       } else {
@@ -615,7 +673,11 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
+      // Get cached member to avoid extra API calls
+      const membersMap = await this.getMembersCache();
+      const cachedMember = membersMap.get(task.ownerID);
+      
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('Reminder task notification sent to:', task.ownerName);
       } else {
@@ -649,7 +711,11 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined);
+      // Get cached member to avoid extra API calls
+      const membersMap = await this.getMembersCache();
+      const cachedMember = membersMap.get(task.ownerID);
+      
+      const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('Late task notification sent to:', task.ownerName);
       } else {
@@ -682,7 +748,11 @@ export class TaskService {
 `;
 
     try {
-      const result = await sendMessageToMember(this.env, newTask.ownerID, text, [], undefined);
+      // Get cached member to avoid extra API calls
+      const membersMap = await this.getMembersCache();
+      const cachedMember = membersMap.get(newTask.ownerID);
+      
+      const result = await sendMessageToMember(this.env, newTask.ownerID, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('Updated due date notification sent to:', newTask.ownerName);
       } else {
@@ -719,8 +789,12 @@ ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
 `;
 
     try {
+      // Get cached member to avoid extra API calls
+      const membersMap = await this.getMembersCache();
+      const cachedMember = membersMap.get(manager.number);
+      
       // Send to manager using their membership_id
-      const result = await sendMessageToMember(this.env, manager.number, text, [], undefined);
+      const result = await sendMessageToMember(this.env, manager.number, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('Missing data notification sent to manager:', manager.name1);
       } else {
