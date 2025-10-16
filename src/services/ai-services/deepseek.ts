@@ -130,3 +130,5 @@ export class DeepSeekService {
     }
   }
 }
+
+export default DeepSeekService;

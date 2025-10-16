@@ -7,7 +7,7 @@ import { TelegramUserStateService } from '../crud/membership-manager/telegram-us
 import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
-import { DeepSeekService } from '../services/ai-services/deepseek';
+import LLMService from '../services/ai-services/deepseek';
 import { getSystemPrompt } from '../utils/ai-config';
 
 const telegram = new Hono<{ Bindings: Environment }>();
@@ -138,11 +138,11 @@ telegram.post('/webhook', async (c) => {
               '_Thinking\\.\\.\\._'
             );
 
-            const deepseekService = new DeepSeekService(c.env);
+            const llmService = new LLMService(c.env);
             // Use the system prompt from config file
             const systemPrompt = getSystemPrompt();
-            const aiResponse = await deepseekService.chat(text, systemPrompt);
-            
+            const aiResponse = await llmService.chat(text, systemPrompt);
+
             // Edit the "Thinking..." message with the AI response
             if (thinkingMessageId) {
               await telegramService.editMessage(
