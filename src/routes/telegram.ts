@@ -5,6 +5,7 @@ import { TelegramService } from '../services/telegram';
 import { EmailService } from '../services/email';
 import { TelegramUserStateService } from '../crud/membership-manager/telegram-user-state';
 import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
+import { AllMessagesGroupsCrud } from '../crud/all-messages-groups';
 import { TaskCrud } from '../crud/task-follower/task';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
@@ -30,15 +31,31 @@ telegram.post('/webhook', async (c) => {
     const telegramId = message.from.id;
     const username = message.from.username;
     const text = message.text || '';
+    const chatType = message.chat.type; // 'private', 'group', 'supergroup', or 'channel'
 
-    // Store all received messages in database
+    // Store all received messages in appropriate database table
     try {
       const db = new D1DatabaseConnection(c.env.DB);
-      const messagesCrud = new AllMessagesPrivateCrud(db);
-      await messagesCrud.storeMessage(update.message);
+      
+      if (chatType === 'private') {
+        // Store private messages
+        const messagesCrud = new AllMessagesPrivateCrud(db);
+        await messagesCrud.storeMessage(update.message);
+      } else if (chatType === 'group' || chatType === 'supergroup') {
+        // Store group messages
+        const groupMessagesCrud = new AllMessagesGroupsCrud(db);
+        await groupMessagesCrud.storeMessage(update.message);
+      }
     } catch (storageError) {
       // Log error but don't fail the request - message processing should continue
       console.error('Failed to store message:', storageError);
+    }
+
+    // Only process commands and user interactions in private chats
+    if (chatType !== 'private') {
+      // For group messages, we just store them and return
+      // You can add group-specific logic here if needed
+      return c.json({ ok: true });
     }
 
     const telegramService = new TelegramService(c.env);
