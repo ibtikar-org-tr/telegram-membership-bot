@@ -16,3 +16,16 @@ export interface MemberUpdate {
   telegram_id?: string;
   telegram_username?: string;
 }
+
+export interface MemberGoogleSheetIndex { // The main Google Sheet (members sheet)
+  membership_number: number | string;
+  ar_name: number | string;
+  latin_name: number | string;
+  whatsapp: number | string;
+  email: number | string;
+  sex: number | string;
+  password: number | string;
+  phone: number | string;
+  telegram_id: number | string;
+  telegram_username: number | string;
+}
