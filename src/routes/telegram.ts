@@ -8,6 +8,7 @@ import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
 import { DeepSeekService } from '../services/deepseek';
+import { getSystemPrompt } from '../config/ai-config';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
@@ -138,7 +139,8 @@ telegram.post('/webhook', async (c) => {
             );
 
             const deepseekService = new DeepSeekService(c.env);
-            const systemPrompt = 'You are a helpful assistant for a ibtikar asssembly telegram bot. Be friendly, concise, and helpful. If users ask about membership verification or commands, guide them to use /help. Also everything related to ibtikar assembly is on website ibtikar.org.tr.';
+            // Use the system prompt from config file
+            const systemPrompt = getSystemPrompt();
             const aiResponse = await deepseekService.chat(text, systemPrompt);
             
             // Edit the "Thinking..." message with the AI response
