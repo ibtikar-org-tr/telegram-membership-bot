@@ -5,6 +5,7 @@ export interface AllMessagesGroups {
   message_json: string; // Stored as JSON string
   chat_id: string; // Telegram group/chat ID
   user_id: string; // Telegram user ID (sender)
+  message_thread_id: string | null; // Forum topic thread ID (null for non-forum groups or General topic)
   notes: string | null;
   created_at: string;
 }
@@ -13,6 +14,7 @@ export interface AllMessagesGroupsModel {
   message_json: string;
   chat_id: string;
   user_id: string;
+  message_thread_id?: string | null;
   notes?: string | null;
 }
 

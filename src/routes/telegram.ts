@@ -57,7 +57,9 @@ telegram.post('/webhook', async (c) => {
       // Handle /summarize command in groups
       if (text.startsWith('/summarize')) {
         const groupServices = new GroupServices(c.env);
-        await groupServices.handleSummarizeCommand(message.chat.id, text);
+        // Pass message_thread_id if present (for forum topics)
+        const messageThreadId = message.message_thread_id;
+        await groupServices.handleSummarizeCommand(message.chat.id, text, messageThreadId);
         return c.json({ ok: true });
       }
       

@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS all_messages_groups (
     message_json TEXT NOT NULL,
     chat_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
+    message_thread_id TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -106,6 +107,8 @@ CREATE INDEX IF NOT EXISTS idx_all_messages_private_created_at ON all_messages_p
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_created_at ON all_messages_groups(created_at);
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_chat_id ON all_messages_groups(chat_id);
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_user_id ON all_messages_groups(user_id);
+CREATE INDEX IF NOT EXISTS idx_all_messages_groups_message_thread_id ON all_messages_groups(message_thread_id);
+CREATE INDEX IF NOT EXISTS idx_all_messages_groups_chat_thread ON all_messages_groups(chat_id, message_thread_id);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 

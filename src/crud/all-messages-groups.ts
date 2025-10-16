@@ -19,11 +19,13 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
       const message_json = JSON.stringify(messageData);
       const chat_id = messageData.chat?.id?.toString() || '';
       const user_id = messageData.from?.id?.toString() || '';
+      const message_thread_id = messageData.message_thread_id?.toString() || null;
       
       const data: AllMessagesGroupsModel = {
         message_json,
         chat_id,
         user_id,
+        message_thread_id,
         notes: notes || null
       };
       
@@ -45,6 +47,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   } | null> {
@@ -57,6 +60,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       };
@@ -76,6 +80,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -87,6 +92,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -106,6 +112,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -120,6 +127,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -156,6 +164,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -175,6 +184,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -198,6 +208,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -217,6 +228,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -264,6 +276,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -285,6 +298,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -309,6 +323,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -329,6 +344,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -439,6 +455,102 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   }
 
   /**
+   * Get conversation from a specific topic in the last X hours
+   * Returns in chronological order
+   * @param chatId The group's chat ID
+   * @param messageThreadId The topic/thread ID
+   * @param hours Number of hours to look back
+   * @param limit Maximum number of messages to retrieve
+   */
+  async getTopicConversationByHours(
+    chatId: number,
+    messageThreadId: string,
+    hours: number = 2,
+    limit: number = 500
+  ): Promise<Array<{
+    user_id: number;
+    user_name: string;
+    content: string;
+    created_at: string;
+  }>> {
+    try {
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE created_at >= datetime('now', '-${hours} hours')
+        AND chat_id = ?
+        AND message_thread_id = ?
+        ORDER BY created_at ASC 
+        LIMIT ?
+      `;
+      const result = await this.db.prepare(query).bind(chatId.toString(), messageThreadId, limit).all<AllMessagesGroups>();
+      
+      if (!result.success) return [];
+
+      return result.results
+        .map(result => {
+          const message = JSON.parse(result.message_json);
+          const text = message.text;
+          const from = message.from;
+          
+          if (!text || !from) return null;
+          
+          return {
+            user_id: from.id,
+            user_name: from.first_name + (from.last_name ? ' ' + from.last_name : ''),
+            content: text,
+            created_at: result.created_at
+          };
+        })
+        .filter((msg): msg is NonNullable<typeof msg> => msg !== null);
+    } catch (error) {
+      console.error('Error getting topic conversation by hours:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all topics (message_thread_ids) in a group from the last X hours
+   * Returns unique topic IDs with message counts
+   * @param chatId The group's chat ID
+   * @param hours Number of hours to look back
+   */
+  async getActiveTopics(
+    chatId: number,
+    hours: number = 2
+  ): Promise<Array<{
+    message_thread_id: string;
+    message_count: number;
+    topic_name: string | null;
+  }>> {
+    try {
+      const query = `
+        SELECT 
+          message_thread_id,
+          COUNT(*) as message_count,
+          json_extract(message_json, '$.reply_to_message.forum_topic_created.name') as topic_name
+        FROM ${this.tableName}
+        WHERE created_at >= datetime('now', '-${hours} hours')
+        AND chat_id = ?
+        AND message_thread_id IS NOT NULL
+        GROUP BY message_thread_id
+        ORDER BY message_count DESC
+      `;
+      const result = await this.db.prepare(query).bind(chatId.toString()).all<{
+        message_thread_id: string;
+        message_count: number;
+        topic_name: string | null;
+      }>();
+      
+      if (!result.success) return [];
+
+      return result.results;
+    } catch (error) {
+      console.error('Error getting active topics:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get all unique groups that have sent messages
    * @param limit Maximum number of groups to retrieve
    */
@@ -535,6 +647,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -554,6 +667,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));
@@ -578,6 +692,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
     message: any;
     chat_id: string;
     user_id: string;
+    message_thread_id: string | null;
     notes: string | null;
     created_at: string;
   }>> {
@@ -597,6 +712,7 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
         message: JSON.parse(result.message_json),
         chat_id: result.chat_id,
         user_id: result.user_id,
+        message_thread_id: result.message_thread_id,
         notes: result.notes,
         created_at: result.created_at
       }));

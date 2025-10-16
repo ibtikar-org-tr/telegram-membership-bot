@@ -20,9 +20,14 @@ export class GroupServices {
    * Handle the /summarize command in group chats
    * @param chatId The group chat ID
    * @param commandText The full command text (e.g., "/summarize 24")
+   * @param messageThreadId Optional message thread ID for topic-specific summarization
    * @returns Promise<void>
    */
-  async handleSummarizeCommand(chatId: number, commandText: string): Promise<void> {
+  async handleSummarizeCommand(
+    chatId: number, 
+    commandText: string,
+    messageThreadId?: number
+  ): Promise<void> {
     try {
       const db = new D1DatabaseConnection(this.env.DB);
       const groupMessagesCrud = new AllMessagesGroupsCrud(db);
@@ -30,33 +35,59 @@ export class GroupServices {
       // Parse hours from command (default to 2 hours)
       const hours = this.parseHoursFromCommand(commandText);
       
+      // Determine if this is a topic-specific request
+      const isTopicSpecific = messageThreadId !== undefined;
+      
       // Send "Generating summary..." message
+      const contextText = isTopicSpecific 
+        ? `_Generating summary of this topic from the last ${hours} hour${hours !== 1 ? 's' : ''}\\.\\.\\._`
+        : `_Generating summary of the last ${hours} hour${hours !== 1 ? 's' : ''} conversation\\.\\.\\._`;
+      
       const statusMessageId = await this.telegramService.sendMessage(
         chatId,
-        `_Generating summary of the last ${hours} hour${hours !== 1 ? 's' : ''} conversation\\.\\.\\._`
+        contextText
       );
       
-      // Get conversation from the last X hours
-      const conversation = await groupMessagesCrud.getGroupConversationByHours(
-        chatId,
-        hours,
-        500
-      );
+      // Get conversation based on context (topic or all messages)
+      let conversation: Array<{
+        user_id: number;
+        user_name: string;
+        content: string;
+        created_at: string;
+      }>;
+      
+      if (isTopicSpecific) {
+        // Get messages from specific topic
+        conversation = await groupMessagesCrud.getTopicConversationByHours(
+          chatId,
+          messageThreadId!.toString(),
+          hours,
+          500
+        );
+      } else {
+        // Check if we're in General topic (no thread_id in message but forum is enabled)
+        // In this case, get all topics combined
+        conversation = await groupMessagesCrud.getGroupConversationByHours(
+          chatId,
+          hours,
+          500
+        );
+      }
       
       // Handle case where no messages found
       if (conversation.length === 0) {
-        await this.handleNoMessagesFound(chatId, hours, statusMessageId);
+        await this.handleNoMessagesFound(chatId, hours, statusMessageId, isTopicSpecific);
         return;
       }
       
       // Build conversation text for AI
-      const conversationText = this.buildConversationText(conversation, hours);
+      const conversationText = this.buildConversationText(conversation, hours, isTopicSpecific);
       
       // Get AI summary
       const summary = await this.generateSummary(conversationText);
       
       // Send or edit the response with the summary
-      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId);
+      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId, isTopicSpecific);
       
     } catch (error) {
       console.error('Error generating summary:', error);
@@ -91,15 +122,18 @@ export class GroupServices {
    * @param chatId The group chat ID
    * @param hours Number of hours searched
    * @param statusMessageId Optional message ID to edit
+   * @param isTopicSpecific Whether this is a topic-specific request
    */
   private async handleNoMessagesFound(
     chatId: number,
     hours: number,
-    statusMessageId?: number
+    statusMessageId?: number,
+    isTopicSpecific: boolean = false
   ): Promise<void> {
+    const context = isTopicSpecific ? 'in this topic ' : '';
     const noMessagesText = hours === 1 
-      ? 'No messages found in the last hour\\.'
-      : `No messages found in the last ${hours} hours\\.`;
+      ? `No messages found ${context}in the last hour\\.`
+      : `No messages found ${context}in the last ${hours} hours\\.`;
     
     if (statusMessageId) {
       await this.telegramService.editMessage(
@@ -116,6 +150,7 @@ export class GroupServices {
    * Build formatted conversation text for AI processing
    * @param conversation Array of conversation messages
    * @param hours Number of hours covered
+   * @param isTopicSpecific Whether this is a topic-specific request
    * @returns Formatted conversation text
    */
   private buildConversationText(
@@ -125,9 +160,11 @@ export class GroupServices {
       content: string;
       created_at: string;
     }>,
-    hours: number
+    hours: number,
+    isTopicSpecific: boolean = false
   ): string {
-    let conversationText = `Conversation from the last ${hours} hour${hours !== 1 ? 's' : ''} (${conversation.length} messages):\n\n`;
+    const context = isTopicSpecific ? 'Topic conversation' : 'Conversation';
+    let conversationText = `${context} from the last ${hours} hour${hours !== 1 ? 's' : ''} (${conversation.length} messages):\n\n`;
     
     conversation.forEach(msg => {
       conversationText += `${msg.user_name}: ${msg.content}\n`;
@@ -158,15 +195,18 @@ Format the summary in a clear, readable way with bullet points or sections if ap
    * @param hours Number of hours summarized
    * @param summary The AI-generated summary
    * @param statusMessageId Optional message ID to edit
+   * @param isTopicSpecific Whether this is a topic-specific request
    */
   private async sendSummaryResponse(
     chatId: number,
     hours: number,
     summary: string,
-    statusMessageId?: number
+    statusMessageId?: number,
+    isTopicSpecific: boolean = false
   ): Promise<void> {
+    const context = isTopicSpecific ? 'this topic' : 'conversation';
     const summaryText = escapeMarkdownV2(
-      `📝 Summary of last ${hours} hour${hours !== 1 ? 's' : ''}:\n\n${summary}`
+      `📝 Summary of ${context} from last ${hours} hour${hours !== 1 ? 's' : ''}:\n\n${summary}`
     );
     
     if (statusMessageId) {
