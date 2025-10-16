@@ -45,7 +45,10 @@ export class GroupServices {
       
       const statusMessageId = await this.telegramService.sendMessage(
         chatId,
-        contextText
+        contextText,
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Send in the same thread/topic
       );
       
       // Get conversation based on context (topic or all messages)
@@ -76,7 +79,7 @@ export class GroupServices {
       
       // Handle case where no messages found
       if (conversation.length === 0) {
-        await this.handleNoMessagesFound(chatId, hours, statusMessageId, isTopicSpecific);
+        await this.handleNoMessagesFound(chatId, hours, statusMessageId, isTopicSpecific, messageThreadId);
         return;
       }
       
@@ -87,13 +90,16 @@ export class GroupServices {
       const summary = await this.generateSummary(conversationText);
       
       // Send or edit the response with the summary
-      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId, isTopicSpecific);
+      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId, isTopicSpecific, messageThreadId);
       
     } catch (error) {
       console.error('Error generating summary:', error);
       await this.telegramService.sendMessage(
         chatId,
-        'Sorry\\, I encountered an error while generating the summary\\. Please try again later\\.'
+        'Sorry\\, I encountered an error while generating the summary\\. Please try again later\\.',
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Send error in the same thread/topic
       );
     }
   }
@@ -123,12 +129,14 @@ export class GroupServices {
    * @param hours Number of hours searched
    * @param statusMessageId Optional message ID to edit
    * @param isTopicSpecific Whether this is a topic-specific request
+   * @param messageThreadId Optional message thread ID for topic-specific responses
    */
   private async handleNoMessagesFound(
     chatId: number,
     hours: number,
     statusMessageId?: number,
-    isTopicSpecific: boolean = false
+    isTopicSpecific: boolean = false,
+    messageThreadId?: number
   ): Promise<void> {
     const context = isTopicSpecific ? 'in this topic ' : '';
     const noMessagesText = hours === 1 
@@ -139,10 +147,19 @@ export class GroupServices {
       await this.telegramService.editMessage(
         chatId,
         statusMessageId,
-        noMessagesText
+        noMessagesText,
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Edit in the same thread/topic
       );
     } else {
-      await this.telegramService.sendMessage(chatId, noMessagesText);
+      await this.telegramService.sendMessage(
+        chatId, 
+        noMessagesText,
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Send in the same thread/topic
+      );
     }
   }
 
@@ -196,13 +213,15 @@ Format the summary in a clear, readable way with bullet points or sections if ap
    * @param summary The AI-generated summary
    * @param statusMessageId Optional message ID to edit
    * @param isTopicSpecific Whether this is a topic-specific request
+   * @param messageThreadId Optional message thread ID for topic-specific responses
    */
   private async sendSummaryResponse(
     chatId: number,
     hours: number,
     summary: string,
     statusMessageId?: number,
-    isTopicSpecific: boolean = false
+    isTopicSpecific: boolean = false,
+    messageThreadId?: number
   ): Promise<void> {
     const context = isTopicSpecific ? 'this topic' : 'conversation';
     const summaryText = escapeMarkdownV2(
@@ -213,10 +232,19 @@ Format the summary in a clear, readable way with bullet points or sections if ap
       await this.telegramService.editMessage(
         chatId,
         statusMessageId,
-        summaryText
+        summaryText,
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Edit in the same thread/topic
       );
     } else {
-      await this.telegramService.sendMessage(chatId, summaryText);
+      await this.telegramService.sendMessage(
+        chatId, 
+        summaryText,
+        undefined, // parseMode
+        undefined, // inlineKeyboard
+        messageThreadId // Send in the same thread/topic
+      );
     }
   }
 }

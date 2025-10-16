@@ -10,7 +10,13 @@ export class TelegramService {
     this.botToken = env.TELEGRAM_BOT_TOKEN;
   }
 
-  async sendMessage(chatId: number | string, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<number | undefined> {
+  async sendMessage(
+    chatId: number | string, 
+    text: string, 
+    parseMode?: string, 
+    inlineKeyboard?: InlineKeyboardButton[][],
+    messageThreadId?: number
+  ): Promise<number | undefined> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
 
     console.log('Sending message to', chatId, 'with text:', text);
@@ -32,6 +38,11 @@ export class TelegramService {
       };
     }
 
+    // Add message_thread_id if provided (for forum topics)
+    if (messageThreadId !== undefined) {
+      payload.message_thread_id = messageThreadId;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -49,7 +60,14 @@ export class TelegramService {
     return result.result?.message_id;
   }
 
-  async editMessage(chatId: number | string, messageId: number, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
+  async editMessage(
+    chatId: number | string, 
+    messageId: number, 
+    text: string, 
+    parseMode?: string, 
+    inlineKeyboard?: InlineKeyboardButton[][],
+    messageThreadId?: number
+  ): Promise<void> {
     const url = `https://api.telegram.org/bot${this.botToken}/editMessageText`;
 
     console.log('Editing message', messageId, 'in chat', chatId);
@@ -69,6 +87,11 @@ export class TelegramService {
       payload.reply_markup = {
         inline_keyboard: inlineKeyboard
       };
+    }
+
+    // Add message_thread_id if provided (for forum topics)
+    if (messageThreadId !== undefined) {
+      payload.message_thread_id = messageThreadId;
     }
 
     const response = await fetch(url, {
