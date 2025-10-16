@@ -1,9 +1,9 @@
 import { BaseCrud, DatabaseConnection } from '../base';
-import { Sheet, TaskSheetModel } from '../../models/task-follower/sheet';
+import { Sheet } from '../../models/task-follower/sheet';
 
 export class SheetCrud extends BaseCrud<Sheet> {
   constructor(db: DatabaseConnection) {
-    super(db, TaskSheetModel.tableName);
+    super(db, 'sheets');
   }
 
   // Get sheet by sheetID

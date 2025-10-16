@@ -1,9 +1,9 @@
 import { BaseCrud, DatabaseConnection } from '../base';
-import { Activity, ActivityModel } from '../../models/task-follower/activity';
+import { Activity } from '../../models/task-follower/activity';
 
 export class ActivityCrud extends BaseCrud<Activity> {
   constructor(db: DatabaseConnection) {
-    super(db, ActivityModel.tableName);
+    super(db, 'activities');
   }
 
   // Get activities by manager ID

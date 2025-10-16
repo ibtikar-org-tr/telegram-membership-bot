@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { Environment } from '../../types';
 import { D1DatabaseConnection } from '../../crud/database';
 import { SheetCrud } from '../../crud/task-follower/sheet';
-import { TaskSheetModel } from '../../models/task-follower/sheet';
 
 type Variables = {
   sheetCrud: SheetCrud;
