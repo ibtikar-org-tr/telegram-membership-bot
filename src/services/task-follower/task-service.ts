@@ -787,7 +787,7 @@ export class TaskService {
 ⚠️ *بيانات ناقصة في المهمة*
 
 🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
-📍 *السّطر:* ${escapeMarkdownV2(task.row_number?.toString() || '')}
+📍 *السّطر:* ${escapeMarkdownV2((task.row_number + 1)?.toString() || '')}
 
 ❌ *البيانات الناقصة:*
 ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
