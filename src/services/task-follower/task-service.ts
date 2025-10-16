@@ -19,8 +19,6 @@ interface Contact {
   telegram_username?: string;
 }
 
-interface Manager extends Contact {}
-
 export class TaskService {
   private db: DatabaseConnection;
   private taskCrud: TaskCrud;
@@ -483,7 +481,7 @@ export class TaskService {
                                     new Date(existingTask.last_reported).getTime() < Date.now() - 24 * 60 * 60 * 1000);
               
               if (shouldReport && send) {
-                await this.sendToManagerMissingData(taskObj, manager);
+                await this.sendToManagerMissingData(taskObj);
                 taskObj.last_reported = new Date();
               }
               send = false;
@@ -502,13 +500,13 @@ export class TaskService {
                   // Check if task is late or needs reminder
                   if (taskObj.dueDate.getTime() < Date.now()) {
                     if (send) {
-                      await this.sendLateTask(taskObj, manager);
+                      await this.sendLateTask(taskObj);
                       taskObj.last_sent = new Date();
                       send = false;
                     }
                   } else {
                     if (send) {
-                      await this.sendReminderTask(taskObj, manager);
+                      await this.sendReminderTask(taskObj);
                       taskObj.last_sent = new Date();
                       send = false;
                     }
@@ -516,7 +514,7 @@ export class TaskService {
                 }
               } else if (!existingTask.last_sent) {
                 if (send) {
-                  await this.sendNewTask(taskObj, manager);
+                  await this.sendNewTask(taskObj);
                   taskObj.last_sent = new Date();
                   send = false;
                 }
@@ -525,13 +523,13 @@ export class TaskService {
               // Check for task updates
               if (existingTask.ownerID !== taskObj.ownerID) {
                 if (send) {
-                  await this.sendNewTask(taskObj, manager);
+                  await this.sendNewTask(taskObj);
                   taskObj.last_sent = new Date();
                   send = false;
                 }
               } else if (this.hasDateChanged(existingTask.dueDate, taskObj.dueDate)) {
                 if (send) {
-                  await this.sendUpdatedDueDateTask(existingTask, taskObj, manager);
+                  await this.sendUpdatedDueDateTask(existingTask, taskObj);
                   taskObj.last_sent = new Date();
                   send = false;
                 }
@@ -550,7 +548,7 @@ export class TaskService {
             } else {
               // Create new task
               if (send) {
-                await this.sendNewTask(taskObj, manager);
+                await this.sendNewTask(taskObj);
                 taskObj.last_sent = new Date();
               }
               await this.createNewTask(taskObj);
@@ -615,10 +613,10 @@ export class TaskService {
   }
 
   // Notification methods using Telegram instead of email
-  private async sendNewTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = task.owner_telegram_username 
-      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
-      : escapeMarkdownV2(manager.name1);
+  private async sendNewTask(task: TaskModel): Promise<void> {
+    const managerContact = task.manager_telegram_username 
+      ? `@${escapeMarkdownV2(task.manager_telegram_username)}`
+      : escapeMarkdownV2(task.managerName || 'غير محدّد');
 
     const text = `
 🆕 *مهمّة جديدة*
@@ -652,10 +650,10 @@ export class TaskService {
     }
   }
 
-  private async sendReminderTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = task.owner_telegram_username 
-      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
-      : escapeMarkdownV2(manager.name1);
+  private async sendReminderTask(task: TaskModel): Promise<void> {
+    const managerContact = task.manager_telegram_username 
+      ? `@${escapeMarkdownV2(task.manager_telegram_username)}`
+      : escapeMarkdownV2(task.managerName || 'غير محدّد');
 
     const text = `
 ⏰ *تذكير بالمهمّة*
@@ -688,10 +686,10 @@ export class TaskService {
     }
   }
 
-  private async sendLateTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = task.owner_telegram_username
-      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
-      : escapeMarkdownV2(manager.name1);
+  private async sendLateTask(task: TaskModel): Promise<void> {
+    const managerContact = task.manager_telegram_username
+      ? `@${escapeMarkdownV2(task.manager_telegram_username)}`
+      : escapeMarkdownV2(task.managerName || 'غير محدّد');
 
     const text = `
 🚨 *مهمّة متأخرة*
@@ -726,10 +724,10 @@ export class TaskService {
     }
   }
 
-  private async sendUpdatedDueDateTask(oldTask: Task, newTask: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = newTask.owner_telegram_username
-      ? `@${escapeMarkdownV2(newTask.owner_telegram_username)}`
-      : escapeMarkdownV2(manager.name1);
+  private async sendUpdatedDueDateTask(oldTask: Task, newTask: TaskModel): Promise<void> {
+    const managerContact = newTask.manager_telegram_username
+      ? `@${escapeMarkdownV2(newTask.manager_telegram_username)}`
+      : escapeMarkdownV2(newTask.managerName || 'غير محدّد');
 
     const text = `
 📅 *تحديث موعد التسليم*
@@ -763,7 +761,7 @@ export class TaskService {
     }
   }
 
-  private async sendToManagerMissingData(task: TaskModel, manager: Manager): Promise<void> {
+  private async sendToManagerMissingData(task: TaskModel): Promise<void> {
     const missingFields = [];
     if (!task.ownerName?.trim()) missingFields.push('اسم المسؤول');
     if (!task.points?.trim()) missingFields.push('النقاط');
@@ -789,14 +787,20 @@ ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
 `;
 
     try {
+      // Check if manager ID exists before sending
+      if (!task.managerID) {
+        console.error('Cannot send missing data notification: Manager ID not found in task');
+        return;
+      }
+
       // Get cached member to avoid extra API calls
       const membersMap = await this.getMembersCache();
-      const cachedMember = membersMap.get(manager.number);
+      const cachedMember = membersMap.get(task.managerID);
       
       // Send to manager using their membership_id
-      const result = await sendMessageToMember(this.env, manager.number, text, [], undefined, cachedMember);
+      const result = await sendMessageToMember(this.env, task.managerID, text, [], undefined, cachedMember);
       if (result.success) {
-        console.log('Missing data notification sent to manager:', manager.name1);
+        console.log('Missing data notification sent to manager:', task.managerName);
       } else {
         console.error('Error sending missing data notification to manager:', result.error);
       }
