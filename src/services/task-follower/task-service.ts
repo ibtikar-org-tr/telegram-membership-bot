@@ -16,6 +16,7 @@ interface Contact {
   name1: string;
   mail: string;
   phone: string;
+  telegram_username?: string;
 }
 
 interface Manager extends Contact {}
@@ -174,7 +175,8 @@ export class TaskService {
           number: contact.number || '0',
           name1: contact.name1 || ownerName,
           mail: contact.mail || 'Unknown',
-          phone: contact.phone || 'Unknown'
+          phone: contact.phone || 'Unknown',
+          telegram_username: contact.telegram_username
         };
       }
     } catch (error) {
@@ -185,7 +187,8 @@ export class TaskService {
       number: '0',
       name1: ownerName || 'Unknown',
       mail: 'Unknown',
-      phone: 'Unknown'
+      phone: 'Unknown',
+      telegram_username: undefined
     };
   }
 
@@ -206,6 +209,7 @@ export class TaskService {
         const name1Index = headers.findIndex((h: string) => h?.toLowerCase().includes('name'));
         const mailIndex = headers.findIndex((h: string) => h?.toLowerCase().includes('mail') || h?.toLowerCase().includes('email'));
         const phoneIndex = headers.findIndex((h: string) => h?.toLowerCase().includes('phone') || h?.toLowerCase().includes('whatsapp'));
+        const telegramUsernameIndex = headers.findIndex((h: string) => h?.toLowerCase().includes('telegram') && h?.toLowerCase().includes('username'));
         
         for (const row of rows) {
           if (row && row.length > 0 && row[0]) { // Skip empty rows
@@ -213,7 +217,8 @@ export class TaskService {
               number: (numberIndex >= 0 ? row[numberIndex] : row[0]) || '0',
               name1: (name1Index >= 0 ? row[name1Index] : row[1]) || 'Unknown',
               mail: (mailIndex >= 0 ? row[mailIndex] : row[2]) || 'Unknown',
-              phone: (phoneIndex >= 0 ? row[phoneIndex] : row[3]) || 'Unknown'
+              phone: (phoneIndex >= 0 ? row[phoneIndex] : row[3]) || 'Unknown',
+              telegram_username: telegramUsernameIndex >= 0 ? row[telegramUsernameIndex] : undefined
             });
           }
         }
@@ -557,6 +562,10 @@ export class TaskService {
 
   // Notification methods using Telegram instead of email
   private async sendNewTask(task: TaskModel, manager: Manager): Promise<void> {
+    const managerContact = manager.telegram_username 
+      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+      : escapeMarkdownV2(manager.name1);
+
     const text = `
 🆕 *مهمّة جديدة*
 
@@ -567,8 +576,7 @@ export class TaskService {
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
 🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
-👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
-📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
+👨‍💼 *مسؤول المشروع:* ${managerContact}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
 `;
@@ -587,6 +595,10 @@ export class TaskService {
   }
 
   private async sendReminderTask(task: TaskModel, manager: Manager): Promise<void> {
+    const managerContact = manager.telegram_username 
+      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+      : escapeMarkdownV2(manager.name1);
+
     const text = `
 ⏰ *تذكير بالمهمّة*
 
@@ -597,8 +609,7 @@ export class TaskService {
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
 🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
-👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
-📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
+👨‍💼 *مسؤول المشروع:* ${managerContact}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
 `;
@@ -616,6 +627,10 @@ export class TaskService {
   }
 
   private async sendLateTask(task: TaskModel, manager: Manager): Promise<void> {
+    const managerContact = manager.telegram_username 
+      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+      : escapeMarkdownV2(manager.name1);
+
     const text = `
 🚨 *مهمّة متأخرة*
 
@@ -626,8 +641,7 @@ export class TaskService {
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
 
 🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
-👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
-📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
+👨‍💼 *مسؤول المشروع:* ${managerContact}
 
 ⚠️ *الرجاء التواصل مع مسؤول المشروع في أقرب وقت ممكن*
 
@@ -647,6 +661,10 @@ export class TaskService {
   }
 
   private async sendUpdatedDueDateTask(oldTask: Task, newTask: TaskModel, manager: Manager): Promise<void> {
+    const managerContact = manager.telegram_username 
+      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+      : escapeMarkdownV2(manager.name1);
+
     const text = `
 📅 *تحديث موعد التسليم*
 
@@ -658,8 +676,7 @@ export class TaskService {
 📝 *ملاحظات:* ${escapeMarkdownV2(newTask.notes || 'لا توجد ملاحظات')}
 
 🏗️ *المشروع:* ${escapeMarkdownV2(newTask.projectName)}
-👨‍💼 *مسؤول المشروع:* ${escapeMarkdownV2(manager.name1)}
-📞 *رقم المسؤول:* wa\\.me/${escapeMarkdownV2(manager.phone)}
+👨‍💼 *مسؤول المشروع:* ${managerContact}
 
 🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${newTask.sheetID}/?gid=${newTask.pageID})
 `;
