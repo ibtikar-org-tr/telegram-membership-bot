@@ -51,10 +51,98 @@ telegram.post('/webhook', async (c) => {
       console.error('Failed to store message:', storageError);
     }
 
-    // Only process commands and user interactions in private chats
+    // Handle group-specific commands
     if (chatType !== 'private') {
-      // For group messages, we just store them and return
-      // You can add group-specific logic here if needed
+      // Handle /summarize command in groups
+      if (text.startsWith('/summarize')) {
+        try {
+          const telegramService = new TelegramService(c.env);
+          const db = new D1DatabaseConnection(c.env.DB);
+          const groupMessagesCrud = new AllMessagesGroupsCrud(db);
+          const llmService = new LLMService(c.env);
+          
+          // Parse hours from command (default to 2 hours)
+          const parts = text.trim().split(/\s+/);
+          let hours = 2;
+          if (parts.length > 1) {
+            const parsedHours = parseInt(parts[1]);
+            if (!isNaN(parsedHours) && parsedHours > 0 && parsedHours <= 168) { // Max 1 week
+              hours = parsedHours;
+            }
+          }
+          
+          // Send "Generating summary..." message
+          const statusMessageId = await telegramService.sendMessage(
+            message.chat.id,
+            `_Generating summary of the last ${hours} hour${hours !== 1 ? 's' : ''} conversation\\.\\.\\._`
+          );
+          
+          // Get conversation from the last X hours
+          const conversation = await groupMessagesCrud.getGroupConversationByHours(
+            message.chat.id,
+            hours,
+            500
+          );
+          
+          if (conversation.length === 0) {
+            const noMessagesText = hours === 1 
+              ? 'No messages found in the last hour\\.'
+              : `No messages found in the last ${hours} hours\\.`;
+            
+            if (statusMessageId) {
+              await telegramService.editMessage(
+                message.chat.id,
+                statusMessageId,
+                noMessagesText
+              );
+            } else {
+              await telegramService.sendMessage(message.chat.id, noMessagesText);
+            }
+            return c.json({ ok: true });
+          }
+          
+          // Build conversation text for AI
+          let conversationText = `Conversation from the last ${hours} hour${hours !== 1 ? 's' : ''} (${conversation.length} messages):\n\n`;
+          conversation.forEach(msg => {
+            conversationText += `${msg.user_name}: ${msg.content}\n`;
+          });
+          
+          // Create summarization prompt
+          const systemPrompt = `You are a helpful assistant that summarizes group conversations. 
+Provide a concise but comprehensive summary of the conversation in the same language as the conversation.
+Highlight key topics discussed, important decisions made, action items, and notable exchanges.
+Format the summary in a clear, readable way with bullet points or sections if appropriate.`;
+          
+          const userPrompt = `Please summarize the following group conversation:\n\n${conversationText}`;
+          
+          // Get AI summary
+          const summary = await llmService.chat(userPrompt, systemPrompt);
+          
+          // Edit the status message with the summary
+          if (statusMessageId) {
+            await telegramService.editMessage(
+              message.chat.id,
+              statusMessageId,
+              escapeMarkdownV2(`📝 Summary of last ${hours} hour${hours !== 1 ? 's' : ''}:\n\n${summary}`)
+            );
+          } else {
+            await telegramService.sendMessage(
+              message.chat.id,
+              escapeMarkdownV2(`📝 Summary of last ${hours} hour${hours !== 1 ? 's' : ''}:\n\n${summary}`)
+            );
+          }
+        } catch (error) {
+          console.error('Error generating summary:', error);
+          const telegramService = new TelegramService(c.env);
+          await telegramService.sendMessage(
+            message.chat.id,
+            'Sorry\\, I encountered an error while generating the summary\\. Please try again later\\.'
+          );
+        }
+        return c.json({ ok: true });
+      }
+      
+      // For other group messages, we just store them and return
       return c.json({ ok: true });
     }
 

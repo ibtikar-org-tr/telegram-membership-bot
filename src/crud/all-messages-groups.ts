@@ -388,6 +388,57 @@ export class AllMessagesGroupsCrud extends BaseCrud<AllMessagesGroups> {
   }
 
   /**
+   * Get group conversation from the last X hours
+   * Returns in chronological order
+   * @param chatId The group's chat ID
+   * @param hours Number of hours to look back
+   * @param limit Maximum number of messages to retrieve
+   */
+  async getGroupConversationByHours(
+    chatId: number,
+    hours: number = 2,
+    limit: number = 500
+  ): Promise<Array<{
+    user_id: number;
+    user_name: string;
+    content: string;
+    created_at: string;
+  }>> {
+    try {
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE created_at >= datetime('now', '-${hours} hours')
+        AND chat_id = ?
+        ORDER BY created_at ASC 
+        LIMIT ?
+      `;
+      const result = await this.db.prepare(query).bind(chatId.toString(), limit).all<AllMessagesGroups>();
+      
+      if (!result.success) return [];
+
+      return result.results
+        .map(result => {
+          const message = JSON.parse(result.message_json);
+          const text = message.text;
+          const from = message.from;
+          
+          if (!text || !from) return null;
+          
+          return {
+            user_id: from.id,
+            user_name: from.first_name + (from.last_name ? ' ' + from.last_name : ''),
+            content: text,
+            created_at: result.created_at
+          };
+        })
+        .filter((msg): msg is NonNullable<typeof msg> => msg !== null);
+    } catch (error) {
+      console.error('Error getting group conversation by hours:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get all unique groups that have sent messages
    * @param limit Maximum number of groups to retrieve
    */
