@@ -131,10 +131,27 @@ telegram.post('/webhook', async (c) => {
         // Normal state - handle with AI for non-command messages
         if (!text.startsWith('/')) {
           try {
+            // Send "Thinking..."
+            const thinkingMessageId = await telegramService.sendMessage(
+              telegramId, 
+              '_Thinking\\.\\.\\._'
+            );
+
             const deepseekService = new DeepSeekService(c.env);
             const systemPrompt = 'You are a helpful assistant for a ibtikar asssembly telegram bot. Be friendly, concise, and helpful. If users ask about membership verification or commands, guide them to use /help. Also everything related to ibtikar assembly is on website ibtikar.org.tr.';
             const aiResponse = await deepseekService.chat(text, systemPrompt);
-            await telegramService.sendMessage(telegramId, escapeMarkdownV2(aiResponse));
+            
+            // Edit the "Thinking..." message with the AI response
+            if (thinkingMessageId) {
+              await telegramService.editMessage(
+                telegramId,
+                thinkingMessageId,
+                escapeMarkdownV2(aiResponse)
+              );
+            } else {
+              // Fallback: send as new message if editing fails
+              await telegramService.sendMessage(telegramId, escapeMarkdownV2(aiResponse));
+            }
           } catch (aiError) {
             console.error('AI error:', aiError);
             // Fallback to help message if AI fails

@@ -10,7 +10,7 @@ export class TelegramService {
     this.botToken = env.TELEGRAM_BOT_TOKEN;
   }
 
-  async sendMessage(chatId: number | string, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
+  async sendMessage(chatId: number | string, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<number | undefined> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
 
     console.log('Sending message to', chatId, 'with text:', text);
@@ -22,6 +22,45 @@ export class TelegramService {
   
     const payload: SendMessageRequest = {
       chat_id: chatId,
+      text: compatibleText,
+      parse_mode: parseMode,
+    };
+
+    if (inlineKeyboard && inlineKeyboard.length > 0) {
+      payload.reply_markup = {
+        inline_keyboard: inlineKeyboard
+      };
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Telegram API error: ${response.status} ${error}`);
+    }
+
+    const result = await response.json() as { result?: { message_id?: number } };
+    return result.result?.message_id;
+  }
+
+  async editMessage(chatId: number | string, messageId: number, text: string, parseMode?: string, inlineKeyboard?: InlineKeyboardButton[][]): Promise<void> {
+    const url = `https://api.telegram.org/bot${this.botToken}/editMessageText`;
+
+    console.log('Editing message', messageId, 'in chat', chatId);
+    let compatibleText = text;
+    if (!parseMode) {
+      parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+    }
+  
+    const payload: any = {
+      chat_id: chatId,
+      message_id: messageId,
       text: compatibleText,
       parse_mode: parseMode,
     };
