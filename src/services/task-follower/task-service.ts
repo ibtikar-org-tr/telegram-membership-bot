@@ -47,19 +47,25 @@ export class TaskService {
   async populateTelegramIds(task: Partial<Task>): Promise<Partial<Task>> {
     const memberService = new MemberSheetServices(this.env);
     
-    // Populate owner telegram ID
+    // Populate owner telegram ID and username
     if (task.ownerID) {
       const owner = await memberService.getMemberByMembershipNumber(task.ownerID);
       if (owner?.telegram_id) {
         task.owner_telegram_id = owner.telegram_id;
       }
+      if (owner?.telegram_username) {
+        task.owner_telegram_username = owner.telegram_username;
+      }
     }
     
-    // Populate manager telegram ID
+    // Populate manager telegram ID and username
     if (task.managerID) {
       const manager = await memberService.getMemberByMembershipNumber(task.managerID);
       if (manager?.telegram_id) {
         task.manager_telegram_id = manager.telegram_id;
+      }
+      if (manager?.telegram_username) {
+        task.manager_telegram_username = manager.telegram_username;
       }
     }
     

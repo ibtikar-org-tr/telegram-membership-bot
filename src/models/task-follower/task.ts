@@ -13,9 +13,11 @@ export interface Task { // represents a task extracted from a Google Sheet (Task
   ownerEmail: string;
   ownerPhone: string;
   owner_telegram_id?: string | null; // Telegram ID of the task owner
+  owner_telegram_username?: string | null; // Telegram username of the task owner
   managerID?: string | null; // membership_number of the manager
   managerName: string;
   manager_telegram_id?: string | null; // Telegram ID of the manager
+  manager_telegram_username?: string | null; // Telegram username of the manager
   points: string;
   status: string;
   taskText: string;
@@ -42,9 +44,11 @@ export class TaskModel implements Task {
   ownerEmail: string;
   ownerPhone: string;
   owner_telegram_id?: string | null;
+  owner_telegram_username?: string | null;
   managerID?: string | null;
   managerName: string;
   manager_telegram_id?: string | null;
+  manager_telegram_username?: string | null;
   points: string;
   status: string;
   taskText: string;
@@ -76,9 +80,11 @@ export class TaskModel implements Task {
     this.ownerEmail = data.ownerEmail;
     this.ownerPhone = data.ownerPhone;
     this.owner_telegram_id = data.owner_telegram_id ?? null;
+    this.owner_telegram_username = data.owner_telegram_username ?? null;
     this.managerID = data.managerID ?? null;
     this.managerName = data.managerName;
     this.manager_telegram_id = data.manager_telegram_id ?? null;
+    this.manager_telegram_username = data.manager_telegram_username ?? null;
     this.points = data.points;
     this.status = data.status;
     this.taskText = data.taskText;

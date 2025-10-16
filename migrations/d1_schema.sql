@@ -39,9 +39,11 @@ CREATE TABLE IF NOT EXISTS tasks (
     ownerEmail TEXT NOT NULL,
     ownerPhone TEXT NOT NULL,
     owner_telegram_id TEXT,
+    owner_telegram_username TEXT,
     managerID TEXT,
     managerName TEXT NOT NULL,
     manager_telegram_id TEXT,
+    manager_telegram_username TEXT,
     points TEXT NOT NULL,
     status TEXT NOT NULL,
     taskText TEXT NOT NULL,
@@ -78,9 +80,11 @@ CREATE INDEX IF NOT EXISTS idx_sheets_sheet_id ON sheets(sheetID);
 CREATE INDEX IF NOT EXISTS idx_tasks_sheet_id ON tasks(sheetID);
 CREATE INDEX IF NOT EXISTS idx_tasks_owner_id ON tasks(ownerID);
 CREATE INDEX IF NOT EXISTS idx_tasks_owner_telegram_id ON tasks(owner_telegram_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_owner_telegram_username ON tasks(owner_telegram_username);
 CREATE INDEX IF NOT EXISTS idx_tasks_manager_id ON tasks(managerID);
 CREATE INDEX IF NOT EXISTS idx_tasks_manager_name ON tasks(managerName);
 CREATE INDEX IF NOT EXISTS idx_tasks_manager_telegram_id ON tasks(manager_telegram_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_manager_telegram_username ON tasks(manager_telegram_username);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(dueDate);
