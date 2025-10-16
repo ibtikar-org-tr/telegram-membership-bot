@@ -8,7 +8,7 @@ import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
 import { DeepSeekService } from '../services/ai-services/deepseek';
-import { getSystemPrompt } from '../config/ai-config';
+import { getSystemPrompt } from '../utils/ai-config';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
