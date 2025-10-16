@@ -21,12 +21,14 @@ export class GroupServices {
    * @param chatId The group chat ID
    * @param commandText The full command text (e.g., "/summarize 24")
    * @param messageThreadId Optional message thread ID for topic-specific summarization
+   * @param commandMessageId Optional message ID of the command message to reply to
    * @returns Promise<void>
    */
   async handleSummarizeCommand(
     chatId: number, 
     commandText: string,
-    messageThreadId?: number
+    messageThreadId?: number,
+    commandMessageId?: number
   ): Promise<void> {
     try {
       const db = new D1DatabaseConnection(this.env.DB);
@@ -48,7 +50,8 @@ export class GroupServices {
         contextText,
         undefined, // parseMode
         undefined, // inlineKeyboard
-        messageThreadId // Send in the same thread/topic
+        messageThreadId, // Send in the same thread/topic
+        commandMessageId // Reply to the command message
       );
       
       // Get conversation based on context (topic or all messages)
@@ -79,7 +82,7 @@ export class GroupServices {
       
       // Handle case where no messages found
       if (conversation.length === 0) {
-        await this.handleNoMessagesFound(chatId, hours, statusMessageId, isTopicSpecific, messageThreadId);
+        await this.handleNoMessagesFound(chatId, hours, statusMessageId, isTopicSpecific, messageThreadId, commandMessageId);
         return;
       }
       
@@ -90,7 +93,7 @@ export class GroupServices {
       const summary = await this.generateSummary(conversationText);
       
       // Send or edit the response with the summary
-      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId, isTopicSpecific, messageThreadId);
+      await this.sendSummaryResponse(chatId, hours, summary, statusMessageId, isTopicSpecific, messageThreadId, commandMessageId);
       
     } catch (error) {
       console.error('Error generating summary:', error);
@@ -99,7 +102,8 @@ export class GroupServices {
         'Sorry\\, I encountered an error while generating the summary\\. Please try again later\\.',
         undefined, // parseMode
         undefined, // inlineKeyboard
-        messageThreadId // Send error in the same thread/topic
+        messageThreadId, // Send error in the same thread/topic
+        commandMessageId // Reply to the command message
       );
     }
   }
@@ -130,13 +134,15 @@ export class GroupServices {
    * @param statusMessageId Optional message ID to edit
    * @param isTopicSpecific Whether this is a topic-specific request
    * @param messageThreadId Optional message thread ID for topic-specific responses
+   * @param commandMessageId Optional message ID of the command message to reply to
    */
   private async handleNoMessagesFound(
     chatId: number,
     hours: number,
     statusMessageId?: number,
     isTopicSpecific: boolean = false,
-    messageThreadId?: number
+    messageThreadId?: number,
+    commandMessageId?: number
   ): Promise<void> {
     const context = isTopicSpecific ? 'in this topic ' : '';
     const noMessagesText = hours === 1 
@@ -158,7 +164,8 @@ export class GroupServices {
         noMessagesText,
         undefined, // parseMode
         undefined, // inlineKeyboard
-        messageThreadId // Send in the same thread/topic
+        messageThreadId, // Send in the same thread/topic
+        commandMessageId // Reply to the command message
       );
     }
   }
@@ -214,6 +221,7 @@ Format the summary in a clear, readable way with bullet points or sections if ap
    * @param statusMessageId Optional message ID to edit
    * @param isTopicSpecific Whether this is a topic-specific request
    * @param messageThreadId Optional message thread ID for topic-specific responses
+   * @param commandMessageId Optional message ID of the command message to reply to
    */
   private async sendSummaryResponse(
     chatId: number,
@@ -221,7 +229,8 @@ Format the summary in a clear, readable way with bullet points or sections if ap
     summary: string,
     statusMessageId?: number,
     isTopicSpecific: boolean = false,
-    messageThreadId?: number
+    messageThreadId?: number,
+    commandMessageId?: number
   ): Promise<void> {
     const context = isTopicSpecific ? 'this topic' : 'conversation';
     const summaryText = escapeMarkdownV2(
@@ -243,7 +252,8 @@ Format the summary in a clear, readable way with bullet points or sections if ap
         summaryText,
         undefined, // parseMode
         undefined, // inlineKeyboard
-        messageThreadId // Send in the same thread/topic
+        messageThreadId, // Send in the same thread/topic
+        commandMessageId // Reply to the command message
       );
     }
   }

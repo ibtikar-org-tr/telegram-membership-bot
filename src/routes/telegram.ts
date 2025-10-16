@@ -59,7 +59,8 @@ telegram.post('/webhook', async (c) => {
         const groupServices = new GroupServices(c.env);
         // Pass message_thread_id if present (for forum topics)
         const messageThreadId = message.message_thread_id;
-        await groupServices.handleSummarizeCommand(message.chat.id, text, messageThreadId);
+        const commandMessageId = message.message_id;
+        await groupServices.handleSummarizeCommand(message.chat.id, text, messageThreadId, commandMessageId);
         return c.json({ ok: true });
       }
       

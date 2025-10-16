@@ -15,7 +15,8 @@ export class TelegramService {
     text: string, 
     parseMode?: string, 
     inlineKeyboard?: InlineKeyboardButton[][],
-    messageThreadId?: number
+    messageThreadId?: number,
+    replyToMessageId?: number
   ): Promise<number | undefined> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
 
@@ -41,6 +42,11 @@ export class TelegramService {
     // Add message_thread_id if provided (for forum topics)
     if (messageThreadId !== undefined) {
       payload.message_thread_id = messageThreadId;
+    }
+
+    // Add reply_to_message_id if provided (to reply to a specific message)
+    if (replyToMessageId !== undefined) {
+      payload.reply_to_message_id = replyToMessageId;
     }
 
     const response = await fetch(url, {

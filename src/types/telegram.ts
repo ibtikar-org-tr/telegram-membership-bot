@@ -66,6 +66,7 @@ export interface SendMessageRequest {
   parse_mode?: string;
   reply_markup?: InlineKeyboardMarkup;
   message_thread_id?: number;
+  reply_to_message_id?: number;
 }
 
 export interface SendPhotoRequest {
