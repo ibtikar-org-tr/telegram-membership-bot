@@ -167,3 +167,4 @@ vite.config.ts.timestamp-*
 # other
 *.md
 !README.md
+examples
