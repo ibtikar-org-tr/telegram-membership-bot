@@ -415,4 +415,85 @@ export class TaskCrud extends BaseCrud<Task> {
       return [];
     }
   }
+
+  /**
+   * Get recent tasks for a user by Telegram ID (as owner or manager)
+   * Returns tasks that have activity in the last 24 hours
+   * @param telegramId The user's Telegram ID
+   * @param limit Maximum number of tasks to return
+   */
+  async getRecentTasksByTelegramId(telegramId: string, limit: number = 50): Promise<Task[]> {
+    try {
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+      const dateThreshold = twentyFourHoursAgo.toISOString();
+      
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE (owner_telegram_id = ? OR manager_telegram_id = ?)
+        AND (
+          created_at >= ?
+          OR updated_at >= ?
+          OR last_sent >= ?
+          OR last_reported >= ?
+        )
+        ORDER BY updated_at DESC
+        LIMIT ?
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(telegramId, telegramId, dateThreshold, dateThreshold, dateThreshold, dateThreshold, limit)
+        .all<Task>();
+      
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting recent tasks by telegram ID:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get tasks by owner Telegram ID
+   * @param ownerTelegramId The owner's Telegram ID
+   */
+  async getByOwnerTelegramId(ownerTelegramId: string): Promise<Task[]> {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE owner_telegram_id = ? ORDER BY created_at DESC`;
+      const result = await this.db.prepare(query).bind(ownerTelegramId).all<Task>();
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting tasks by owner telegram ID:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get tasks by manager Telegram ID
+   * @param managerTelegramId The manager's Telegram ID
+   */
+  async getByManagerTelegramId(managerTelegramId: string): Promise<Task[]> {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE manager_telegram_id = ? ORDER BY created_at DESC`;
+      const result = await this.db.prepare(query).bind(managerTelegramId).all<Task>();
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting tasks by manager telegram ID:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get tasks by manager ID (membership number)
+   * @param managerId The manager's membership number
+   */
+  async getByManagerId(managerId: string): Promise<Task[]> {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE managerID = ? ORDER BY created_at DESC`;
+      const result = await this.db.prepare(query).bind(managerId).all<Task>();
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting tasks by manager ID:', error);
+      return [];
+    }
+  }
 }

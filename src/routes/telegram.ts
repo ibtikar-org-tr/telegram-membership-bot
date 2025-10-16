@@ -5,6 +5,7 @@ import { TelegramService } from '../services/telegram';
 import { EmailService } from '../services/email';
 import { TelegramUserStateService } from '../crud/membership-manager/telegram-user-state';
 import { AllMessagesPrivateCrud } from '../crud/all-messages-private';
+import { TaskCrud } from '../crud/task-follower/task';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
 import LLMService from '../services/ai-services/cloudflare-ai';
@@ -143,26 +144,53 @@ telegram.post('/webhook', async (c) => {
             const messagesCrud = new AllMessagesPrivateCrud(db);
             const todaysConversation = await messagesCrud.getTodaysConversation(telegramId, 100);
 
+            // Get recent tasks for this user (last 24 hours of activity)
+            const taskCrud = new TaskCrud(db);
+            const recentTasks = await taskCrud.getRecentTasksByTelegramId(telegramId.toString(), 20);
+
             const llmService = new LLMService(c.env);
             
-            // Build conversation history with today's messages
+            // Build conversation history with today's messages and task context
             let aiResponse: string;
             
-            if (todaysConversation.length > 0) {
-              // Create message history including system prompt and all of today's conversation
-              const conversationHistory: Array<{
-                role: 'system' | 'user' | 'assistant';
-                content: string;
-              }> = [];
+            const conversationHistory: Array<{
+              role: 'system' | 'user' | 'assistant';
+              content: string;
+            }> = [];
 
-              // Add system prompt first
-              const systemPrompt = getSystemPrompt();
-              conversationHistory.push({
-                role: 'system',
-                content: systemPrompt
+            // Build enhanced system prompt with task context
+            let systemPrompt = getSystemPrompt();
+            
+            if (recentTasks.length > 0) {
+              systemPrompt += '\n\n--- USER\'S RECENT TASKS (Last 24 hours) ---\n';
+              systemPrompt += 'The user has the following recent tasks:\n\n';
+              
+              recentTasks.forEach((task, index) => {
+                const roleText = task.owner_telegram_id === telegramId.toString() ? 'Owner' : 'Manager';
+                systemPrompt += `${index + 1}. [${roleText}] ${task.taskText}\n`;
+                systemPrompt += `   Project: ${task.projectName}\n`;
+                systemPrompt += `   Status: ${task.status}\n`;
+                systemPrompt += `   Priority: ${task.priority}\n`;
+                if (task.dueDate) {
+                  systemPrompt += `   Due Date: ${new Date(task.dueDate).toLocaleDateString()}\n`;
+                }
+                if (task.notes) {
+                  systemPrompt += `   Notes: ${task.notes}\n`;
+                }
+                systemPrompt += '\n';
               });
+              
+              systemPrompt += 'Use this task information when the user asks about their tasks, deadlines, or work status.\n';
+            }
 
-              // Add today's conversation (already filtered to exclude commands)
+            // Add system prompt first
+            conversationHistory.push({
+              role: 'system',
+              content: systemPrompt
+            });
+
+            // Add today's conversation (if any)
+            if (todaysConversation.length > 0) {
               for (const msg of todaysConversation) {
                 // Skip command messages
                 if (!msg.content.startsWith('/')) {
@@ -172,21 +200,21 @@ telegram.post('/webhook', async (c) => {
                   });
                 }
               }
+            }
 
-              // Add the current message if it's not already the last one
-              const lastMessage = todaysConversation[todaysConversation.length - 1];
-              if (!lastMessage || lastMessage.content !== text || lastMessage.role !== 'user') {
-                conversationHistory.push({
-                  role: 'user',
-                  content: text
-                });
-              }
+            // Add the current message if it's not already the last one
+            const lastMessage = todaysConversation[todaysConversation.length - 1];
+            if (!lastMessage || lastMessage.content !== text || lastMessage.role !== 'user') {
+              conversationHistory.push({
+                role: 'user',
+                content: text
+              });
+            }
 
-              // Use chatWithHistory to maintain context
+            // Use chatWithHistory if we have conversation context, otherwise use simple chat
+            if (conversationHistory.length > 1) {
               aiResponse = await llmService.chatWithHistory(conversationHistory);
             } else {
-              // No history - use simple chat
-              const systemPrompt = getSystemPrompt();
               aiResponse = await llmService.chat(text, systemPrompt);
             }
 

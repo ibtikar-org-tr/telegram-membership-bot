@@ -6,6 +6,7 @@ import { Sheet } from '../../models/task-follower/sheet';
 import { GoogleSheetsService } from '../google-sheets';
 import { TelegramService } from '../telegram';
 import { sendMessageToMember } from '../membership-manager/member-services';
+import { MemberSheetServices } from '../membership-manager/member-sheet-services';
 import { Environment } from '../../types';
 import { DatabaseConnection } from '../../crud/base';
 import { escapeMarkdownV2 } from '../../utils/helpers';
@@ -36,6 +37,33 @@ export class TaskService {
     this.activityCrud = new ActivityCrud(db);
     this.googleSheetsService = new GoogleSheetsService(env);
     this.telegramService = new TelegramService(env);
+  }
+
+  /**
+   * Populate telegram IDs for a task based on membership numbers
+   * @param task Task object to populate
+   * @returns Task with populated telegram IDs
+   */
+  async populateTelegramIds(task: Partial<Task>): Promise<Partial<Task>> {
+    const memberService = new MemberSheetServices(this.env);
+    
+    // Populate owner telegram ID
+    if (task.ownerID) {
+      const owner = await memberService.getMemberByMembershipNumber(task.ownerID);
+      if (owner?.telegram_id) {
+        task.owner_telegram_id = owner.telegram_id;
+      }
+    }
+    
+    // Populate manager telegram ID
+    if (task.managerID) {
+      const manager = await memberService.getMemberByMembershipNumber(task.managerID);
+      if (manager?.telegram_id) {
+        task.manager_telegram_id = manager.telegram_id;
+      }
+    }
+    
+    return task;
   }
 
   // Basic CRUD operations (delegating to TaskCrud)

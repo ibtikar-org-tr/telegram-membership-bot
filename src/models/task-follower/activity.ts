@@ -5,6 +5,7 @@ export interface Activity {
   last_reported?: Date | null;
   managerName: string;
   managerID: string;
+  manager_telegram_id?: string | null; // Telegram ID of the manager
   projectName: string;
 }
 
@@ -16,6 +17,7 @@ export class ActivityModel implements Activity {
   last_reported?: Date | null;
   managerName: string;
   managerID: string;
+  manager_telegram_id?: string | null;
   projectName: string;
 
   constructor(data: Omit<Activity, 'id' | 'created_at' | 'updated_at'> & { 
@@ -29,6 +31,7 @@ export class ActivityModel implements Activity {
     this.last_reported = data.last_reported;
     this.managerName = data.managerName;
     this.managerID = data.managerID;
+    this.manager_telegram_id = data.manager_telegram_id ?? null;
     this.projectName = data.projectName;
   }
 
