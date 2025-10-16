@@ -616,8 +616,8 @@ export class TaskService {
 
   // Notification methods using Telegram instead of email
   private async sendNewTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = manager.telegram_username 
-      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+    const managerContact = task.owner_telegram_username 
+      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
       : escapeMarkdownV2(manager.name1);
 
     const text = `
@@ -653,8 +653,8 @@ export class TaskService {
   }
 
   private async sendReminderTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = manager.telegram_username 
-      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+    const managerContact = task.owner_telegram_username 
+      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
       : escapeMarkdownV2(manager.name1);
 
     const text = `
@@ -689,8 +689,8 @@ export class TaskService {
   }
 
   private async sendLateTask(task: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = manager.telegram_username 
-      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+    const managerContact = task.owner_telegram_username
+      ? `@${escapeMarkdownV2(task.owner_telegram_username)}`
       : escapeMarkdownV2(manager.name1);
 
     const text = `
@@ -727,8 +727,8 @@ export class TaskService {
   }
 
   private async sendUpdatedDueDateTask(oldTask: Task, newTask: TaskModel, manager: Manager): Promise<void> {
-    const managerContact = manager.telegram_username 
-      ? `@${escapeMarkdownV2(manager.telegram_username)}`
+    const managerContact = newTask.owner_telegram_username
+      ? `@${escapeMarkdownV2(newTask.owner_telegram_username)}`
       : escapeMarkdownV2(manager.name1);
 
     const text = `
