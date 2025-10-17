@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { Environment, TelegramUpdate } from '../types';
+import { Environment, TelegramUpdate, InlineKeyboardButton } from '../types';
 import { MemberSheetServices } from '../services/membership-manager/member-sheet-services';
 import { TelegramService } from '../services/telegram';
 import { EmailService } from '../services/email';
@@ -23,6 +23,67 @@ function generateVerificationCode(): string {
 telegram.post('/webhook', async (c) => {
   try {
     const update: TelegramUpdate = await c.req.json();
+    
+    // Handle callback queries (button clicks)
+    if (update.callback_query) {
+      const callbackQuery = update.callback_query;
+      const telegramId = callbackQuery.from.id;
+      const username = callbackQuery.from.username;
+      const callbackData = callbackQuery.data;
+      const messageId = callbackQuery.message?.message_id;
+
+      const telegramService = new TelegramService(c.env);
+      const memberSheetServices = new MemberSheetServices(c.env);
+      const userStateService = new TelegramUserStateService(c.env);
+
+      // Handle "check_subscription" callback
+      if (callbackData === 'check_subscription') {
+        // Check if user is now subscribed
+        const isSubscribed = await telegramService.checkChannelMembership(telegramId, c.env.MAIN_CHANNEL);
+        
+        if (isSubscribed) {
+          // User is subscribed - proceed with verification
+          await userStateService.setUserState(telegramId.toString(), 'waiting_membership_number');
+          
+          // Edit the message to remove buttons and show success
+          if (messageId) {
+            await telegramService.editMessage(
+              telegramId,
+              messageId,
+              `✅ تم التحقق من اشتراكك بنجاح\\!\n\nالآن يرجى إدخال رقم العضوية للتحقق من عضويتك`
+            );
+          } else {
+            await telegramService.sendMessage(
+              telegramId,
+              `✅ تم التحقق من اشتراكك بنجاح\\!\n\nالآن يرجى إدخال رقم العضوية للتحقق من عضويتك`
+            );
+          }
+
+          // Answer the callback query
+          await fetch(`https://api.telegram.org/bot${c.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callback_query_id: callbackQuery.id,
+              text: '✅ تم التحقق من اشتراكك'
+            })
+          });
+        } else {
+          // User is still not subscribed
+          await fetch(`https://api.telegram.org/bot${c.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callback_query_id: callbackQuery.id,
+              text: '❌ لم يتم العثور على اشتراك. يرجى الاشتراك في القناة أولاً',
+              show_alert: true
+            })
+          });
+        }
+      }
+
+      return c.json({ ok: true });
+    }
     
     if (!update.message) {
       return c.json({ ok: true });
@@ -105,15 +166,46 @@ telegram.post('/webhook', async (c) => {
           `أنت مسجل بالفعل برقم العضوية ${existingMember.membership_number}\n\nالاسم: ${escapeMarkdownV2(existingMember.latin_name)}\n\nاستخدم /help لعرض الأوامر المتاحة`
         );
         return c.json({ ok: true });
-      } else {
-        // New user - set state to wait for membership number
-        await userStateService.setUserState(telegramId.toString(), 'waiting_membership_number');
+      }
+
+      // Check if user is subscribed to the main channel
+      const isSubscribed = await telegramService.checkChannelMembership(telegramId, c.env.MAIN_CHANNEL);
+      
+      if (!isSubscribed) {
+        // User is not subscribed - send message with channel link
+        const channelLink = `https://t.me/${c.env.MAIN_CHANNEL}`;
+        const subscribeButton: InlineKeyboardButton[][] = [
+          [
+            {
+              text: '📢 اشترك في القناة',
+              url: channelLink
+            }
+          ],
+          [
+            {
+              text: '✅ تحققت من الاشتراك',
+              callback_data: 'check_subscription'
+            }
+          ]
+        ];
+
         await telegramService.sendMessage(
           telegramId,
-          `يرجى إدخال رقم العضوية للتحقق من عضويتك`
+          `للتحقق من عضويتك، يجب عليك أولاً الاشتراك في قناتنا الرسمية:\n\n${escapeMarkdownV2(channelLink)}\n\nبعد الاشتراك، اضغط على الزر أدناه للمتابعة`,
+          'MarkdownV2',
+          subscribeButton
         );
         return c.json({ ok: true });
       }
+
+      // User is subscribed - proceed with verification
+      // New user - set state to wait for membership number
+      await userStateService.setUserState(telegramId.toString(), 'waiting_membership_number');
+      await telegramService.sendMessage(
+        telegramId,
+        `يرجى إدخال رقم العضوية للتحقق من عضويتك`
+      );
+      return c.json({ ok: true });
     }
 
     // Handle /help command

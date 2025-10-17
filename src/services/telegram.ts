@@ -209,6 +209,46 @@ export class TelegramService {
     }
   }
 
+  async checkChannelMembership(userId: number, channelUsername: string): Promise<boolean> {
+    const url = `https://api.telegram.org/bot${this.botToken}/getChatMember`;
+    
+    // Add @ prefix if not present
+    const formattedChannel = channelUsername.startsWith('@') ? channelUsername : `@${channelUsername}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: formattedChannel,
+          user_id: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to check channel membership: ${response.status}`);
+        return false;
+      }
+
+      const result = await response.json() as { 
+        ok: boolean; 
+        result?: { 
+          status: string;
+        } 
+      };
+
+      // User is a member if status is: creator, administrator, member
+      // User is NOT a member if status is: left, kicked
+      const memberStatuses = ['creator', 'administrator', 'member'];
+      return result.ok && result.result ? memberStatuses.includes(result.result.status) : false;
+    } catch (error) {
+      console.error('Error checking channel membership:', error);
+      return false;
+    }
+  }
+
   async sendHelpMessage(chatId: number | string): Promise<void> {
     const helpText = `
 *قائمة المساعدة*

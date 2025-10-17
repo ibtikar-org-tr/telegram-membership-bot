@@ -16,4 +16,5 @@ export interface Environment {
   BASE_URL: string;
   DEEPSEEK_API_KEY: string;
   AI: any; // Cloudflare AI binding
+  MAIN_CHANNEL: string; // Main Telegram channel username (without @)
 }

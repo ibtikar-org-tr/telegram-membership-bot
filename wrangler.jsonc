@@ -28,6 +28,7 @@
     }
   ],
   "vars": {
+    "MAIN_CHANNEL": "ibtikar_org",
     "SMTP_HOST": "smtp.gmail.com",
     "SMTP_PORT": "587",
     "SMTP_USER": "ibtikar.org@gmail.com",
