@@ -91,11 +91,15 @@ export class ShameService {
     error?: string;
   }> {
     try {
+      console.log('Sending shame notifications for taskId:', taskId);
       const task = await this.taskCrud.getById(taskId);
       
       if (!task) {
+        console.error('Task not found in database for ID:', taskId);
         return { success: false, notifiedCount: 0, error: 'Task not found' };
       }
+      
+      console.log('Task found for shame notification:', task.taskText, 'Project:', task.projectName);
 
       // Verify task is still delayed
       if (!this.isTaskDelayed(task)) {
@@ -183,15 +187,19 @@ export class ShameService {
     notifyOwner: boolean;
   }> {
     try {
+      console.log('Handling shame button click for taskId:', taskId);
       const task = await this.taskCrud.getById(taskId);
 
       if (!task) {
+        console.error('Task not found for ID:', taskId);
         return {
           success: false,
           message: '❌ لم يتم العثور على المهمة',
           notifyOwner: false
         };
       }
+      
+      console.log('Task found:', task.taskText, 'Status:', task.status);
 
       // Check if task is still pending
       if (task.status === 'completed' || task.completed_at) {
