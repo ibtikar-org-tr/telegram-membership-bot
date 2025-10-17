@@ -91,11 +91,9 @@ export class ShameService {
     error?: string;
   }> {
     try {
-      console.log('Sending shame notifications for taskId:', taskId);
       const task = await this.taskCrud.getById(taskId);
       
       if (!task) {
-        console.error('Task not found in database for ID:', taskId);
         return { success: false, notifiedCount: 0, error: 'Task not found' };
       }
       
@@ -187,11 +185,9 @@ export class ShameService {
     notifyOwner: boolean;
   }> {
     try {
-      console.log('Handling shame button click for taskId:', taskId);
       const task = await this.taskCrud.getById(taskId);
 
       if (!task) {
-        console.error('Task not found for ID:', taskId);
         return {
           success: false,
           message: '❌ لم يتم العثور على المهمة',

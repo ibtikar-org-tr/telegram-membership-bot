@@ -41,7 +41,6 @@ telegram.post('/webhook', async (c) => {
       // Handle "shame_" callback (shame button clicks)
       if (callbackData?.startsWith('shame_')) {
         const taskId = callbackData.replace('shame_', '');
-        console.log('Callback handler received taskId:', taskId, 'from callbackData:', callbackData);
         const db = new D1DatabaseConnection(c.env.DB);
         const shameService = new ShameService(db, c.env);
 

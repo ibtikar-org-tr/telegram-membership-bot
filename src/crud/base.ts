@@ -45,9 +45,7 @@ export abstract class BaseCrud<T> {
   async getById(id: string): Promise<T | null> {
     try {
       const query = `SELECT * FROM ${this.tableName} WHERE id = ?`;
-      console.log(`[BaseCrud.getById] Querying ${this.tableName} with ID:`, id);
       const result = await this.db.prepare(query).bind(id).first<T>();
-      console.log(`[BaseCrud.getById] Query result for ${this.tableName}:`, result ? 'Found' : 'NULL');
       return result;
     } catch (error) {
       console.error(`Error getting ${this.tableName} by ID:`, error);
@@ -93,9 +91,7 @@ export abstract class BaseCrud<T> {
       const setClause = fields.map(field => `${field} = ?`).join(', ');
       
       const query = `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`;
-      console.log(`[BaseCrud.update] Updating ${this.tableName} with ID: ${id}, fields:`, fields.length);
       const result = await this.db.prepare(query).bind(...values, id).run();
-      console.log(`[BaseCrud.update] Update result:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
       
       return { success: result.success, error: result.error };
     } catch (error) {

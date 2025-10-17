@@ -111,9 +111,7 @@ export class TaskService {
   async createNewTask(task: TaskModel): Promise<Task | null> {
     // Populate telegram IDs before creating
     await this.populateTelegramIds(task);
-    console.log(`[createNewTask] Creating task: ${task.taskText} (row ${task.row_number})`);
     const result = await this.taskCrud.create(task);
-    console.log(`[createNewTask] Result: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     return result.success ? task : null;
   }
 
@@ -124,9 +122,7 @@ export class TaskService {
   async searchTask(sheetId: string, projectName: string, rowNumber: number): Promise<Task | null> {
     try {
       const query = `SELECT * FROM tasks WHERE sheetID = ? AND projectName = ? AND row_number = ? LIMIT 1`;
-      console.log(`[searchTask] Looking for task: sheetID=${sheetId}, projectName=${projectName}, row=${rowNumber}`);
       const result = await this.db.prepare(query).bind(sheetId, projectName, rowNumber).first<Task>();
-      console.log(`[searchTask] Result:`, result ? `Found (ID: ${result.id})` : 'NOT FOUND');
       return result || null;
     } catch (error) {
       console.error('Error searching task:', error);
@@ -136,20 +132,13 @@ export class TaskService {
 
   async updateTaskById(taskId: string, task: Partial<Task>): Promise<Task | null> {
     // Populate telegram IDs before updating
-    console.log(`[updateTaskById] Starting update for task ID: ${taskId}`);
     await this.populateTelegramIds(task);
     
     // CRITICAL: Remove the 'id' field from the update data to prevent overwriting the task ID
     const { id, ...updateData } = task;
-    if (id && id !== taskId) {
-      console.warn(`[updateTaskById] WARNING: Task object contains different ID (${id}) than target ID (${taskId}). Ignoring task.id.`);
-    }
     
-    console.log(`[updateTaskById] Calling taskCrud.update...`);
     const result = await this.taskCrud.update(taskId, updateData);
-    console.log(`[updateTaskById] Update result:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
     if (result.success) {
-      console.log(`[updateTaskById] Fetching updated task...`);
       return await this.getTaskById(taskId);
     }
     return null;
@@ -481,7 +470,6 @@ export class TaskService {
 
             // Check if task exists
             const existingTask = await this.searchTask(sheetId, projectName, rowNumber);
-            console.log(`[Row ${rowNumber}] Existing task:`, existingTask ? `Found (ID: ${existingTask.id})` : 'NOT FOUND - will create new');
 
             // Check for missing data
             const hasMissingData = !taskObj.ownerName?.trim() || 
@@ -561,11 +549,9 @@ export class TaskService {
               }
 
               // Update existing task
-              console.log(`[Row ${rowNumber}] UPDATING existing task ID: ${existingTask.id}`);
               await this.updateTaskById(existingTask.id!, taskObj);
             } else {
               // Create new task
-              console.log(`[Row ${rowNumber}] CREATING new task`);
               if (send) {
                 await this.sendNewTask(taskObj);
                 taskObj.last_sent = new Date();
@@ -783,11 +769,9 @@ export class TaskService {
         console.log('Late task notification sent to:', task.ownerName);
         
         // If task is delayed by 2+ days, automatically send shame notifications to project members
-        // Use taskId parameter if provided, otherwise fall back to task.id
         const idToUse = taskId || task.id;
         if (isDelayedBy2Days && idToUse) {
-          console.log(`Task is 2+ days overdue, sending shame notifications to project members...`);
-          console.log(`Using task ID: ${idToUse} (from ${taskId ? 'parameter' : 'task.id'})`);
+          console.log('Task is 2+ days overdue, sending shame notifications to project members...');
           const { ShameService } = await import('./shame-service');
           const shameService = new ShameService(this.db, this.env);
           
