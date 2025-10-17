@@ -35,9 +35,10 @@ export class GroupMemberTrackingService {
       }
 
       // Update last_seen for the message sender (if they're a regular message)
-      if (message.from && message.text && !message.new_chat_members && !message.left_chat_member) {
-        await this.updateLastSeen(chatId, message.from.id.toString());
-      }
+      // COMMENTED OUT: This triggers a DB query on EVERY message - too expensive!
+      // if (message.from && message.text && !message.new_chat_members && !message.left_chat_member) {
+      //   await this.updateLastSeen(chatId, message.from.id.toString());
+      // }
     } catch (error) {
       console.error('Error processing member tracking:', error);
     }
