@@ -35,7 +35,7 @@ taskRoutes.get('/', async (c) => {
 });
 
 // Get task by ID
-taskRoutes.get('/:id', async (c) => {
+taskRoutes.get('/get-task-by-id/:id', async (c) => {
   try {
     const taskService = c.get('taskService') as TaskService;
     const taskId = c.req.param('id');

@@ -500,7 +500,8 @@ export class TaskService {
                   // Check if task is late or needs reminder
                   if (taskObj.dueDate.getTime() < Date.now()) {
                     if (send) {
-                      await this.sendLateTask(taskObj);
+                      // Pass the existing task ID for shame notifications
+                      await this.sendLateTask(taskObj, existingTask.id);
                       taskObj.last_sent = new Date();
                       send = false;
                     }
@@ -728,10 +729,14 @@ export class TaskService {
     }
   }
 
-  private async sendLateTask(task: TaskModel): Promise<void> {
+  private async sendLateTask(task: TaskModel, taskId?: string): Promise<void> {
     const managerContact = task.manager_telegram_username
       ? `@${escapeMarkdownV2(task.manager_telegram_username)}`
       : escapeMarkdownV2(task.managerName || 'غير محدّد');
+
+    // Check if task is delayed by 2+ days for shame notifications
+    const isDelayedBy2Days = task.dueDate && 
+      (Date.now() - new Date(task.dueDate).getTime()) > (2 * 24 * 60 * 60 * 1000);
 
     const text = `
 🚨 *مهمّة متأخرة*
@@ -758,6 +763,29 @@ export class TaskService {
       const result = await sendMessageToMember(this.env, task.ownerID, text, [], undefined, cachedMember);
       if (result.success) {
         console.log('Late task notification sent to:', task.ownerName);
+        
+        // If task is delayed by 2+ days, automatically send shame notifications to project members
+        // Use taskId parameter if provided, otherwise fall back to task.id
+        const idToUse = taskId || task.id;
+        if (isDelayedBy2Days && idToUse) {
+          console.log('Task is 2+ days overdue, sending shame notifications to project members...');
+          const { ShameService } = await import('./shame-service');
+          const shameService = new ShameService(this.db, this.env);
+          
+          try {
+            const shameResult = await shameService.sendShameNotifications(idToUse);
+            if (shameResult.success) {
+              console.log(`Shame notifications sent to ${shameResult.notifiedCount} project members`);
+            } else {
+              console.log('No shame notifications sent:', shameResult.error);
+            }
+          } catch (shameError) {
+            console.error('Error sending shame notifications:', shameError);
+            // Don't fail the late task notification if shame fails
+          }
+        } else if (isDelayedBy2Days && !idToUse) {
+          console.warn('Task is 2+ days overdue but no task ID available for shame notifications');
+        }
       } else {
         console.error('Error sending late task notification:', result.error);
         // Notify manager about the delivery failure
