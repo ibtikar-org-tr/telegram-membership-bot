@@ -122,6 +122,36 @@ telegram.post('/webhook', async (c) => {
       return c.json({ ok: true });
     }
 
+    // Handle /info command - show membership information
+    if (text === '/info' || text === '/myinfo' || text === '/iforgot') {
+      const existingMember = await memberSheetServices.getMemberByTelegramId(telegramId.toString());
+      
+      if (!existingMember) {
+        await telegramService.sendMessage(
+          telegramId,
+          'لم يتم العثور على معلومات العضوية\\. يرجى استخدام /verify لتسجيل حسابك'
+        );
+        return c.json({ ok: true });
+      }
+
+      // Build membership info message
+      const infoText = `
+*معلومات العضوية* 📋
+
+🆔 *رقم العضوية:* ${escapeMarkdownV2(existingMember.membership_number)}
+👤 *الاسم بالعربية:* ${escapeMarkdownV2(existingMember.ar_name || 'غير متوفر')}
+👤 *الاسم اللاتيني:* ${escapeMarkdownV2(existingMember.latin_name || 'غير متوفر')}
+📧 *البريد الإلكتروني:* ${escapeMarkdownV2(existingMember.email || 'غير متوفر')}
+📱 *الهاتف:* ${escapeMarkdownV2(existingMember.phone || 'غير متوفر')}
+💬 *واتساب:* ${escapeMarkdownV2(existingMember.whatsapp || 'غير متوفر')}
+
+_هذه المعلومات مسجلة في نظامنا\\._
+      `.trim();
+
+      await telegramService.sendMessage(telegramId, infoText);
+      return c.json({ ok: true });
+    }
+
     // Get user's current state
     const currentState = await userStateService.getUserStateValue(telegramId.toString());
 
