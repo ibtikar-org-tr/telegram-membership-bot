@@ -6,6 +6,7 @@ export { TaskCrud } from './task-follower/task';
 export { AllMessagesPrivateCrud } from './all-messages-private';
 export { AllMessagesGroupsCrud } from './all-messages-groups';
 export { GroupsCrud } from './groups';
+export { GroupMembersCrud } from './group-members';
 
 // Combined CRUD manager class
 import { ActivityCrud } from './task-follower/activity';

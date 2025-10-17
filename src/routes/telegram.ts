@@ -12,6 +12,7 @@ import { escapeMarkdownV2 } from '../utils/helpers';
 import LLMService from '../services/ai-services/deepseek';
 import { getSystemPrompt } from '../utils/ai-config';
 import { GroupServices } from '../services/group-services';
+import { GroupMemberTrackingService } from '../services/group-member-tracking';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
@@ -107,6 +108,10 @@ telegram.post('/webhook', async (c) => {
         // Store group messages
         const groupMessagesCrud = new AllMessagesGroupsCrud(db);
         await groupMessagesCrud.storeMessage(update.message);
+        
+        // Track member changes
+        const memberTrackingService = new GroupMemberTrackingService(db);
+        await memberTrackingService.processMessage(update.message);
       }
     } catch (storageError) {
       // Log error but don't fail the request - message processing should continue

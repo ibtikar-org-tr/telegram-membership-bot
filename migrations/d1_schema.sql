@@ -101,6 +101,25 @@ CREATE TABLE IF NOT EXISTS groups (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Group Members table
+CREATE TABLE IF NOT EXISTS group_members (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    chat_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    username TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    status TEXT NOT NULL DEFAULT 'member', -- member, left, kicked, banned, restricted, creator, administrator
+    joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+    left_at TEXT,
+    last_seen TEXT,
+    invited_by TEXT, -- User ID of who invited them
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(chat_id, user_id)
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_activities_manager_id ON activities(managerID);
 CREATE INDEX IF NOT EXISTS idx_activities_manager_telegram_id ON activities(manager_telegram_id);
@@ -131,6 +150,13 @@ CREATE INDEX IF NOT EXISTS idx_groups_chat_id ON groups(chat_id);
 CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type);
 CREATE INDEX IF NOT EXISTS idx_groups_is_active ON groups(is_active);
 CREATE INDEX IF NOT EXISTS idx_groups_username ON groups(username);
+CREATE INDEX IF NOT EXISTS idx_group_members_chat_id ON group_members(chat_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_status ON group_members(status);
+CREATE INDEX IF NOT EXISTS idx_group_members_chat_user ON group_members(chat_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_joined_at ON group_members(joined_at);
+CREATE INDEX IF NOT EXISTS idx_group_members_left_at ON group_members(left_at);
+CREATE INDEX IF NOT EXISTS idx_group_members_invited_by ON group_members(invited_by);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 
@@ -159,4 +185,11 @@ CREATE TRIGGER IF NOT EXISTS update_groups_updated_at
     FOR EACH ROW 
     BEGIN
         UPDATE groups SET updated_at = datetime('now') WHERE id = NEW.id;
+    END;
+
+CREATE TRIGGER IF NOT EXISTS update_group_members_updated_at 
+    AFTER UPDATE ON group_members 
+    FOR EACH ROW 
+    BEGIN
+        UPDATE group_members SET updated_at = datetime('now') WHERE id = NEW.id;
     END;
