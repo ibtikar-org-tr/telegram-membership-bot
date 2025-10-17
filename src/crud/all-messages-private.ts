@@ -17,8 +17,12 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
   ): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const message_json = JSON.stringify(messageData);
+      // Extract user_id from the message data
+      const user_id = messageData?.from?.id?.toString() || messageData?.chat?.id?.toString() || null;
+      
       const data: AllMessagesPrivateModel = {
         message_json,
+        user_id,
         notes: notes || null
       };
       
@@ -241,15 +245,16 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
     created_at: string;
   }>> {
     try {
-      // Get messages from today where the from.id matches the telegramId
+      // Get messages from today where the user_id matches the telegramId
+      // Using indexed user_id column for better performance
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND json_extract(message_json, '$.from.id') = ?
+        AND user_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;
-      const result = await this.db.prepare(query).bind(telegramId, limit).all<AllMessagesPrivate>();
+      const result = await this.db.prepare(query).bind(telegramId.toString(), limit).all<AllMessagesPrivate>();
       
       if (!result.success) return [];
 
@@ -294,6 +299,7 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
         }
       };
       
+      // Pass the bot message with extracted user_id
       return await this.storeMessage(botMessageData, 'bot_response');
     } catch (error) {
       return {
@@ -319,20 +325,15 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
   }>> {
     try {
       // Get all messages from today related to this user
+      // Using indexed user_id column for better performance
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND (
-          json_extract(message_json, '$.from.id') = ?
-          OR (
-            json_extract(message_json, '$.chat.id') = ?
-            AND notes = 'bot_response'
-          )
-        )
+        AND user_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;
-      const result = await this.db.prepare(query).bind(telegramId, telegramId, limit).all<AllMessagesPrivate>();
+      const result = await this.db.prepare(query).bind(telegramId.toString(), limit).all<AllMessagesPrivate>();
       
       if (!result.success) return [];
 
