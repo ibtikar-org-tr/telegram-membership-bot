@@ -249,6 +249,87 @@ export class TelegramService {
     }
   }
 
+  async getChat(chatId: number | string): Promise<any> {
+    const url = `https://api.telegram.org/bot${this.botToken}/getChat`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get chat info: ${response.status} ${error}`);
+      }
+
+      const result = await response.json() as { ok: boolean; result?: any };
+      return result.result;
+    } catch (error) {
+      console.error('Error getting chat info:', error);
+      throw error;
+    }
+  }
+
+  async getChatAdministrators(chatId: number | string): Promise<any[]> {
+    const url = `https://api.telegram.org/bot${this.botToken}/getChatAdministrators`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get chat administrators: ${response.status} ${error}`);
+      }
+
+      const result = await response.json() as { ok: boolean; result?: any[] };
+      return result.result || [];
+    } catch (error) {
+      console.error('Error getting chat administrators:', error);
+      throw error;
+    }
+  }
+
+  async getChatMemberCount(chatId: number | string): Promise<number> {
+    const url = `https://api.telegram.org/bot${this.botToken}/getChatMemberCount`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get chat member count: ${response.status} ${error}`);
+      }
+
+      const result = await response.json() as { ok: boolean; result?: number };
+      return result.result || 0;
+    } catch (error) {
+      console.error('Error getting chat member count:', error);
+      return 0;
+    }
+  }
+
   async sendHelpMessage(chatId: number | string): Promise<void> {
     const helpText = `
 *قائمة المساعدة*

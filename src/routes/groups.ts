@@ -11,20 +11,17 @@ groupsRouter.use('*', authMiddleware);
 
 /**
  * POST /groups/store
- * Store or update a group with admins
+ * Store or update a group by fetching all info from Telegram API
  * Body: {
- *   chat_id: string,
- *   title: string,
- *   type: string,
- *   username?: string,
- *   description?: string,
- *   invite_link?: string,
- *   is_active?: boolean,
- *   member_count?: number,
- *   needs_admin_approval?: boolean,
- *   admins?: Array<{ user_id: string, username?: string, first_name?: string, last_name?: string, status: 'creator' | 'administrator' }>,
- *   notes?: string
+ *   chat_id: string (required) - The Telegram chat ID,
+ *   needs_admin_approval?: boolean (optional) - Whether admin approval is required,
+ *   notes?: string (optional) - Additional notes
  * }
+ * 
+ * The bot will automatically fetch:
+ * - Group title, type, username, description
+ * - Current member count
+ * - List of all administrators
  */
 groupsRouter.post('/store', async (c) => {
   try {
@@ -32,65 +29,67 @@ groupsRouter.post('/store', async (c) => {
     
     const { 
       chat_id, 
-      title, 
-      type, 
-      username, 
-      description, 
-      invite_link, 
-      is_active, 
-      member_count, 
       needs_admin_approval,
-      admins, 
       notes 
     } = body;
 
     // Validate required fields
-    if (!chat_id || !title || !type) {
+    if (!chat_id) {
       return c.json({ 
-        error: 'Missing required fields: chat_id, title, and type are required' 
+        error: 'Missing required field: chat_id' 
       }, 400);
     }
 
     const groupsCrud = new GroupsCrud(c.env.DB);
+    const telegramService = new (await import('../services/telegram')).TelegramService(c.env);
 
+    // Fetch group info from Telegram
+    let chatInfo;
+    try {
+      chatInfo = await telegramService.getChat(chat_id);
+    } catch (error) {
+      return c.json({ 
+        error: 'Failed to fetch group info from Telegram. Make sure the bot is an admin in this group.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 400);
+    }
+
+    // Fetch administrators
+    let adminsList: GroupAdmin[] = [];
+    try {
+      const chatAdmins = await telegramService.getChatAdministrators(chat_id);
+      adminsList = chatAdmins.map((admin: any) => ({
+        user_id: admin.user.id.toString(),
+        username: admin.user.username,
+        first_name: admin.user.first_name,
+        last_name: admin.user.last_name,
+        status: admin.status === 'creator' ? 'creator' : 'administrator'
+      }));
+    } catch (error) {
+      console.warn('Failed to fetch administrators, continuing with empty list:', error);
+    }
+
+    // Fetch member count
+    let memberCount = 0;
+    try {
+      memberCount = await telegramService.getChatMemberCount(chat_id);
+    } catch (error) {
+      console.warn('Failed to fetch member count:', error);
+    }
+
+    // Build group data from Telegram info
     const groupData: GroupModel = {
       chat_id: chat_id.toString(),
-      title,
-      type,
-      username: username || null,
-      description: description || null,
-      invite_link: invite_link || null,
-      is_active: is_active ? 1 : 0,
-      member_count: member_count || null,
+      title: chatInfo.title || 'Unknown',
+      type: chatInfo.type || 'group',
+      username: chatInfo.username || null,
+      description: chatInfo.description || null,
+      invite_link: chatInfo.invite_link || null,
+      is_active: 1,
+      member_count: memberCount || null,
       needs_admin_approval: needs_admin_approval ? 1 : 0,
       notes: notes || null
     };
-
-    // Validate admins format if provided
-    let adminsList: GroupAdmin[] | undefined;
-    if (admins) {
-      if (!Array.isArray(admins)) {
-        return c.json({ 
-          error: 'admins must be an array' 
-        }, 400);
-      }
-
-      // Validate each admin object
-      for (const admin of admins) {
-        if (!admin.user_id) {
-          return c.json({ 
-            error: 'Each admin must have a user_id' 
-          }, 400);
-        }
-        if (admin.status && !['creator', 'administrator'].includes(admin.status)) {
-          return c.json({ 
-            error: 'Admin status must be either "creator" or "administrator"' 
-          }, 400);
-        }
-      }
-
-      adminsList = admins;
-    }
 
     // Upsert the group (create if new, update if exists)
     const result = await groupsCrud.upsertGroup(groupData, adminsList);
@@ -101,14 +100,111 @@ groupsRouter.post('/store', async (c) => {
       }, 500);
     }
 
+    // Fetch the stored group to return complete info
+    const storedGroup = await groupsCrud.getGroupById(result.id!);
+
     return c.json({ 
       success: true,
       id: result.id,
       isNew: result.isNew,
-      message: result.isNew ? 'Group created successfully' : 'Group updated successfully'
+      message: result.isNew ? 'Group created successfully' : 'Group updated successfully',
+      group: storedGroup,
+      admins_count: adminsList.length,
+      member_count: memberCount
     });
   } catch (error) {
     console.error('Store group error:', error);
+    return c.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+/**
+ * POST /groups/sync/:chatId
+ * Sync/refresh group data from Telegram API
+ * Updates group info and admins list
+ */
+groupsRouter.post('/sync/:chatId', async (c) => {
+  try {
+    const chatId = c.req.param('chatId');
+
+    const groupsCrud = new GroupsCrud(c.env.DB);
+    const telegramService = new (await import('../services/telegram')).TelegramService(c.env);
+
+    // Check if group exists
+    const existingGroup = await groupsCrud.getGroupByChatId(chatId);
+    if (!existingGroup) {
+      return c.json({ 
+        error: 'Group not found. Use /store endpoint to add it first.' 
+      }, 404);
+    }
+
+    // Fetch updated group info from Telegram
+    let chatInfo;
+    try {
+      chatInfo = await telegramService.getChat(chatId);
+    } catch (error) {
+      return c.json({ 
+        error: 'Failed to fetch group info from Telegram.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, 400);
+    }
+
+    // Fetch administrators
+    let adminsList: GroupAdmin[] = [];
+    try {
+      const chatAdmins = await telegramService.getChatAdministrators(chatId);
+      adminsList = chatAdmins.map((admin: any) => ({
+        user_id: admin.user.id.toString(),
+        username: admin.user.username,
+        first_name: admin.user.first_name,
+        last_name: admin.user.last_name,
+        status: admin.status === 'creator' ? 'creator' : 'administrator'
+      }));
+    } catch (error) {
+      console.warn('Failed to fetch administrators:', error);
+    }
+
+    // Fetch member count
+    let memberCount = 0;
+    try {
+      memberCount = await telegramService.getChatMemberCount(chatId);
+    } catch (error) {
+      console.warn('Failed to fetch member count:', error);
+    }
+
+    // Update group data
+    const updateData: Partial<GroupModel> = {
+      title: chatInfo.title || existingGroup.title,
+      type: chatInfo.type || existingGroup.type,
+      username: chatInfo.username || null,
+      description: chatInfo.description || null,
+      invite_link: chatInfo.invite_link || null,
+      member_count: memberCount || existingGroup.member_count
+    };
+
+    const result = await groupsCrud.updateGroup(existingGroup.id, updateData, adminsList);
+
+    if (!result.success) {
+      return c.json({ 
+        error: result.error || 'Failed to sync group' 
+      }, 500);
+    }
+
+    // Fetch updated group
+    const updatedGroup = await groupsCrud.getGroupById(existingGroup.id);
+
+    return c.json({ 
+      success: true,
+      message: 'Group synced successfully',
+      group: updatedGroup,
+      admins_count: adminsList.length,
+      member_count: memberCount
+    });
+  } catch (error) {
+    console.error('Sync group error:', error);
     return c.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
