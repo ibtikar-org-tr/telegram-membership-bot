@@ -213,6 +213,138 @@ groupsRouter.post('/sync/:chatId', async (c) => {
 });
 
 /**
+ * POST /groups/sync-all
+ * Sync/refresh all active groups from Telegram API
+ * This will iterate through all stored groups and update their data
+ * Query params: 
+ *   - active_only (boolean, default: true) - Only sync active groups
+ *   - batch_size (number, default: 10) - Number of groups to process in parallel
+ */
+groupsRouter.post('/sync-all', async (c) => {
+  try {
+    const activeOnly = c.req.query('active_only') !== 'false'; // Default true
+    const batchSize = parseInt(c.req.query('batch_size') || '10');
+
+    const groupsCrud = new GroupsCrud(c.env.DB);
+    const telegramService = new (await import('../services/telegram')).TelegramService(c.env);
+
+    // Get all groups to sync
+    const groups = activeOnly 
+      ? await groupsCrud.getActiveGroups()
+      : await groupsCrud.getGroups(1000, 0); // Get up to 1000 groups
+
+    if (groups.length === 0) {
+      return c.json({ 
+        success: true,
+        message: 'No groups to sync',
+        total: 0,
+        synced: 0,
+        failed: 0
+      });
+    }
+
+    console.log(`Starting sync for ${groups.length} groups...`);
+
+    const results = {
+      total: groups.length,
+      synced: 0,
+      failed: 0,
+      errors: [] as Array<{ chat_id: string; title: string; error: string }>
+    };
+
+    // Process groups in batches
+    for (let i = 0; i < groups.length; i += batchSize) {
+      const batch = groups.slice(i, i + batchSize);
+      
+      await Promise.allSettled(
+        batch.map(async (group) => {
+          try {
+            // Fetch updated group info from Telegram
+            const chatInfo = await telegramService.getChat(group.chat_id);
+
+            // Fetch administrators
+            let adminsList: GroupAdmin[] = [];
+            try {
+              const chatAdmins = await telegramService.getChatAdministrators(group.chat_id);
+              adminsList = chatAdmins.map((admin: any) => ({
+                user_id: admin.user.id.toString(),
+                username: admin.user.username,
+                first_name: admin.user.first_name,
+                last_name: admin.user.last_name,
+                status: admin.status === 'creator' ? 'creator' : 'administrator'
+              }));
+            } catch (error) {
+              console.warn(`Failed to fetch administrators for ${group.chat_id}:`, error);
+            }
+
+            // Fetch member count
+            let memberCount = 0;
+            try {
+              memberCount = await telegramService.getChatMemberCount(group.chat_id);
+            } catch (error) {
+              console.warn(`Failed to fetch member count for ${group.chat_id}:`, error);
+            }
+
+            // Update group data
+            const updateData: Partial<GroupModel> = {
+              title: chatInfo.title || group.title,
+              type: chatInfo.type || group.type,
+              username: chatInfo.username || null,
+              description: chatInfo.description || null,
+              invite_link: chatInfo.invite_link || null,
+              member_count: memberCount || group.member_count
+            };
+
+            const result = await groupsCrud.updateGroup(group.id, updateData, adminsList);
+
+            if (result.success) {
+              results.synced++;
+              console.log(`✓ Synced: ${group.title} (${group.chat_id})`);
+            } else {
+              results.failed++;
+              results.errors.push({
+                chat_id: group.chat_id,
+                title: group.title,
+                error: result.error || 'Unknown error'
+              });
+              console.error(`✗ Failed to sync: ${group.title} (${group.chat_id}) - ${result.error}`);
+            }
+          } catch (error) {
+            results.failed++;
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            results.errors.push({
+              chat_id: group.chat_id,
+              title: group.title,
+              error: errorMsg
+            });
+            console.error(`✗ Error syncing: ${group.title} (${group.chat_id}) - ${errorMsg}`);
+          }
+        })
+      );
+
+      // Small delay between batches to avoid rate limiting
+      if (i + batchSize < groups.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    console.log(`Sync completed: ${results.synced} synced, ${results.failed} failed`);
+
+    return c.json({ 
+      success: true,
+      message: `Synced ${results.synced} out of ${results.total} groups`,
+      ...results
+    });
+  } catch (error) {
+    console.error('Sync all groups error:', error);
+    return c.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+/**
  * GET /groups
  * Get all groups with pagination
  * Query params: limit, offset
