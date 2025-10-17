@@ -17,12 +17,12 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
   ): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const message_json = JSON.stringify(messageData);
-      // Extract user_id from the message data
-      const user_id = messageData?.from?.id?.toString() || messageData?.chat?.id?.toString() || null;
+      // Extract chat_id from the message data (for private chats, this is the user's ID)
+      const chat_id = messageData?.chat?.id?.toString() || messageData?.from?.id?.toString() || null;
       
       const data: AllMessagesPrivateModel = {
         message_json,
-        user_id,
+        chat_id,
         notes: notes || null
       };
       
@@ -232,7 +232,7 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
 
   /**
    * Get today's messages for a specific user (by telegram_id)
-   * @param telegramId The user's telegram ID
+   * @param telegramId The user's telegram ID (same as chat_id for private chats)
    * @param limit Maximum number of messages to retrieve
    */
   async getTodaysMessagesForUser(
@@ -245,12 +245,12 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
     created_at: string;
   }>> {
     try {
-      // Get messages from today where the user_id matches the telegramId
-      // Using indexed user_id column for better performance
+      // Get messages from today where the chat_id matches the telegramId
+      // Using indexed chat_id column for better performance
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND user_id = ?
+        AND chat_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;
@@ -272,7 +272,7 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
 
   /**
    * Store a bot response (AI reply) for conversation history
-   * @param telegramId The user's telegram ID
+   * @param telegramId The user's telegram ID (chat_id for private chats)
    * @param userMessageText The user's original message
    * @param botResponse The bot's AI-generated response
    */
@@ -299,7 +299,7 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
         }
       };
       
-      // Pass the bot message with extracted user_id
+      // Pass the bot message - chat_id will be automatically extracted from chat.id
       return await this.storeMessage(botMessageData, 'bot_response');
     } catch (error) {
       return {
@@ -312,7 +312,7 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
   /**
    * Get today's conversation for a user (both user messages and bot responses)
    * Returns in chronological order with role identified
-   * @param telegramId The user's telegram ID
+   * @param telegramId The user's telegram ID (same as chat_id for private chats)
    * @param limit Maximum number of messages to retrieve
    */
   async getTodaysConversation(
@@ -324,12 +324,13 @@ export class AllMessagesPrivateCrud extends BaseCrud<AllMessagesPrivate> {
     created_at: string;
   }>> {
     try {
-      // Get all messages from today related to this user
-      // Using indexed user_id column for better performance
+      // Get all messages from today related to this chat
+      // Using indexed chat_id column for better performance
+      // Both user messages and bot responses share the same chat_id
       const query = `
         SELECT * FROM ${this.tableName} 
         WHERE DATE(created_at) = DATE('now')
-        AND user_id = ?
+        AND chat_id = ?
         ORDER BY created_at ASC 
         LIMIT ?
       `;

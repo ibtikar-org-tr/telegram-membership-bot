@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS telegram_user_states (
 CREATE TABLE IF NOT EXISTS all_messages_private (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     message_json TEXT NOT NULL,
-    user_id TEXT,
+    chat_id TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -158,8 +158,8 @@ CREATE INDEX IF NOT EXISTS idx_group_members_chat_user ON group_members(chat_id,
 CREATE INDEX IF NOT EXISTS idx_group_members_joined_at ON group_members(joined_at);
 CREATE INDEX IF NOT EXISTS idx_group_members_left_at ON group_members(left_at);
 CREATE INDEX IF NOT EXISTS idx_group_members_invited_by ON group_members(invited_by);
-CREATE INDEX IF NOT EXISTS idx_all_messages_private_user_id ON all_messages_private(user_id);
-CREATE INDEX IF NOT EXISTS idx_all_messages_private_user_id_created_at ON all_messages_private(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_all_messages_private_chat_id ON all_messages_private(chat_id);
+CREATE INDEX IF NOT EXISTS idx_all_messages_private_chat_id_created_at ON all_messages_private(chat_id, created_at);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 
