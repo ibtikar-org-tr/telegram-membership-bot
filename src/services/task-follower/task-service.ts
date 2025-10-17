@@ -658,9 +658,23 @@ export class TaskService {
         console.log('New task notification sent to:', task.ownerName);
       } else {
         console.error('Error sending new task notification:', result.error);
+        // Notify manager about the delivery failure
+        await this.notifyManagerOfDeliveryFailure(
+          task, 
+          result.errorCode || 'UNKNOWN_ERROR', 
+          result.error || 'Unknown error',
+          'new'
+        );
       }
     } catch (error) {
       console.error('Error sending new task notification:', error);
+      // Notify manager about the delivery failure
+      await this.notifyManagerOfDeliveryFailure(
+        task, 
+        'UNKNOWN_ERROR', 
+        error instanceof Error ? error.message : 'Unknown error',
+        'new'
+      );
     }
   }
 
@@ -694,9 +708,23 @@ export class TaskService {
         console.log('Reminder task notification sent to:', task.ownerName);
       } else {
         console.error('Error sending reminder task notification:', result.error);
+        // Notify manager about the delivery failure
+        await this.notifyManagerOfDeliveryFailure(
+          task, 
+          result.errorCode || 'UNKNOWN_ERROR', 
+          result.error || 'Unknown error',
+          'reminder'
+        );
       }
     } catch (error) {
       console.error('Error sending reminder task notification:', error);
+      // Notify manager about the delivery failure
+      await this.notifyManagerOfDeliveryFailure(
+        task, 
+        'UNKNOWN_ERROR', 
+        error instanceof Error ? error.message : 'Unknown error',
+        'reminder'
+      );
     }
   }
 
@@ -732,9 +760,23 @@ export class TaskService {
         console.log('Late task notification sent to:', task.ownerName);
       } else {
         console.error('Error sending late task notification:', result.error);
+        // Notify manager about the delivery failure
+        await this.notifyManagerOfDeliveryFailure(
+          task, 
+          result.errorCode || 'UNKNOWN_ERROR', 
+          result.error || 'Unknown error',
+          'late'
+        );
       }
     } catch (error) {
       console.error('Error sending late task notification:', error);
+      // Notify manager about the delivery failure
+      await this.notifyManagerOfDeliveryFailure(
+        task, 
+        'UNKNOWN_ERROR', 
+        error instanceof Error ? error.message : 'Unknown error',
+        'late'
+      );
     }
   }
 
@@ -769,9 +811,23 @@ export class TaskService {
         console.log('Updated due date notification sent to:', newTask.ownerName);
       } else {
         console.error('Error sending updated due date notification:', result.error);
+        // Notify manager about the delivery failure
+        await this.notifyManagerOfDeliveryFailure(
+          newTask, 
+          result.errorCode || 'UNKNOWN_ERROR', 
+          result.error || 'Unknown error',
+          'updated'
+        );
       }
     } catch (error) {
       console.error('Error sending updated due date notification:', error);
+      // Notify manager about the delivery failure
+      await this.notifyManagerOfDeliveryFailure(
+        newTask, 
+        'UNKNOWN_ERROR', 
+        error instanceof Error ? error.message : 'Unknown error',
+        'updated'
+      );
     }
   }
 
@@ -820,6 +876,76 @@ ${missingFields.map(field => `• ${escapeMarkdownV2(field)}`).join('\n')}
       }
     } catch (error) {
       console.error('Error sending missing data notification to manager:', error);
+    }
+  }
+
+  /**
+   * Notify manager when a user fails to receive a task message
+   */
+  private async notifyManagerOfDeliveryFailure(
+    task: TaskModel, 
+    errorCode: string, 
+    errorMessage: string,
+    taskType: 'new' | 'reminder' | 'late' | 'updated'
+  ): Promise<void> {
+    if (!task.managerID) {
+      console.error('Cannot notify manager of delivery failure: Manager ID not found in task');
+      return;
+    }
+
+    // Map error codes to user-friendly Arabic messages
+    const errorReasons: Record<string, string> = {
+      'BOT_BLOCKED': 'المستخدم قام بحظر البوت',
+      'NOT_STARTED': 'المستخدم لم يبدأ المحادثة مع البوت بعد',
+      'CHAT_NOT_FOUND': 'حساب المستخدم غير موجود أو غير صالح',
+      'NO_TELEGRAM_ID': 'المستخدم لم يسجل حساب تيليجرام في النظام',
+      'MEMBER_NOT_FOUND': 'المستخدم غير موجود في قاعدة البيانات',
+      'RATE_LIMIT': 'تم تجاوز حد الإرسال المسموح',
+      'BAD_REQUEST': 'خطأ في البيانات المرسلة',
+      'UNKNOWN_ERROR': 'خطأ غير معروف'
+    };
+
+    const taskTypeArabic: Record<string, string> = {
+      'new': 'مهمة جديدة',
+      'reminder': 'تذكير بمهمة',
+      'late': 'مهمة متأخرة',
+      'updated': 'تحديث موعد مهمة'
+    };
+
+    const reason = errorReasons[errorCode] || errorReasons['UNKNOWN_ERROR'];
+    const taskTypeText = taskTypeArabic[taskType] || 'رسالة';
+
+    const text = `
+🚫 *فشل إرسال رسالة إلى عضو*
+
+📋 *نوع الرسالة:* ${escapeMarkdownV2(taskTypeText)}
+👤 *العضو:* ${escapeMarkdownV2(task.ownerName || 'غير محدد')}
+🆔 *رقم العضوية:* ${escapeMarkdownV2(task.ownerID)}
+${task.owner_telegram_username ? `📱 *معرف التيليجرام:* @${escapeMarkdownV2(task.owner_telegram_username)}\n` : ''}
+
+❌ *سبب الفشل:* ${escapeMarkdownV2(reason)}
+
+📝 *المهمة:* ${escapeMarkdownV2(task.taskText)}
+🏗️ *المشروع:* ${escapeMarkdownV2(task.projectName)}
+📅 *آخر موعد للتسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
+
+⚠️ *يرجى أخذ الإجراء المناسب، أو التّواصل مع مكتب التحوّل الرّقمي لطلب المساعدة*
+
+🔗 [رابط ملف المتابعة](https://docs.google.com/spreadsheets/d/${task.sheetID}/?gid=${task.pageID})
+`;
+
+    try {
+      const membersMap = await this.getMembersCache();
+      const cachedManager = membersMap.get(task.managerID);
+      
+      const result = await sendMessageToMember(this.env, task.managerID, text, [], undefined, cachedManager);
+      if (result.success) {
+        console.log(`Delivery failure notification sent to manager: ${task.managerName} about ${task.ownerName}`);
+      } else {
+        console.error('Error sending delivery failure notification to manager:', result.error);
+      }
+    } catch (error) {
+      console.error('Error sending delivery failure notification to manager:', error);
     }
   }
 

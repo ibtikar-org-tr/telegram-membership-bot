@@ -24,11 +24,20 @@ export async function sendMessageToMember(
 
     if (!member) {
       console.error('Member not found for ID:', member_id);
-      return { error: 'Member not found' };
+      return { 
+        success: false,
+        error: 'Member not found',
+        errorCode: 'MEMBER_NOT_FOUND'
+      };
     }
 
     if (!member.telegram_id) {
-      return { error: 'Member has not registered for Telegram notifications' };
+      return { 
+        success: false,
+        error: 'Member has not registered for Telegram notifications',
+        errorCode: 'NO_TELEGRAM_ID',
+        member: member
+      };
     }
 
     // Send message/photo with or without boxes
@@ -41,7 +50,11 @@ export async function sendMessageToMember(
         );
         
         if (validBoxes.length === 0) {
-          return { error: 'Invalid boxes format. Each box must have text and link properties' };
+          return { 
+            success: false,
+            error: 'Invalid boxes format. Each box must have text and link properties',
+            errorCode: 'INVALID_BOXES'
+          };
         }
 
         await telegramService.sendPhotoWithBoxes(member.telegram_id, photo, message, validBoxes);
@@ -57,7 +70,11 @@ export async function sendMessageToMember(
         );
         
         if (validBoxes.length === 0) {
-          return { error: 'Invalid boxes format. Each box must have text and link properties' };
+          return { 
+            success: false,
+            error: 'Invalid boxes format. Each box must have text and link properties',
+            errorCode: 'INVALID_BOXES'
+          };
         }
 
         await telegramService.sendMessageWithBoxes(member.telegram_id, message, validBoxes);
@@ -69,11 +86,44 @@ export async function sendMessageToMember(
     return { 
       success: true, 
       message: `Message sent to ${member.latin_name} (${member.membership_number})`,
-      telegram_id: member.telegram_id
+      telegram_id: member.telegram_id,
+      member: member
     };
   } catch (error) {
     console.error('Notify member error:', error);
-    return { error: 'Internal server error' };
+    
+    // Parse Telegram API errors
+    let errorCode = 'UNKNOWN_ERROR';
+    let errorMessage = 'Internal server error';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Check for common Telegram API errors
+      if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+        errorCode = 'BOT_BLOCKED';
+        errorMessage = 'User has blocked the bot';
+      } else if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+        if (errorMessage.includes('chat not found') || errorMessage.includes('user not found')) {
+          errorCode = 'CHAT_NOT_FOUND';
+          errorMessage = 'Chat or user not found';
+        } else if (errorMessage.includes('need member')) {
+          errorCode = 'NOT_STARTED';
+          errorMessage = 'User has not started the bot';
+        } else {
+          errorCode = 'BAD_REQUEST';
+        }
+      } else if (errorMessage.includes('429')) {
+        errorCode = 'RATE_LIMIT';
+        errorMessage = 'Rate limit exceeded';
+      }
+    }
+    
+    return { 
+      success: false,
+      error: errorMessage,
+      errorCode: errorCode
+    };
   }
 };
 
