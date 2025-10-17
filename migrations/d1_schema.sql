@@ -83,6 +83,24 @@ CREATE TABLE IF NOT EXISTS all_messages_groups (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Groups table
+CREATE TABLE IF NOT EXISTS groups (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    chat_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    username TEXT,
+    description TEXT,
+    invite_link TEXT, -- Only used if the group has static invite link, otherwise links are generated dynamically for every user
+    is_active INTEGER NOT NULL DEFAULT 1,
+    member_count INTEGER,
+    admins TEXT NOT NULL DEFAULT '[]',
+    needs_admin_approval INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_activities_manager_id ON activities(managerID);
 CREATE INDEX IF NOT EXISTS idx_activities_manager_telegram_id ON activities(manager_telegram_id);
@@ -109,6 +127,10 @@ CREATE INDEX IF NOT EXISTS idx_all_messages_groups_chat_id ON all_messages_group
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_user_id ON all_messages_groups(user_id);
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_message_thread_id ON all_messages_groups(message_thread_id);
 CREATE INDEX IF NOT EXISTS idx_all_messages_groups_chat_thread ON all_messages_groups(chat_id, message_thread_id);
+CREATE INDEX IF NOT EXISTS idx_groups_chat_id ON groups(chat_id);
+CREATE INDEX IF NOT EXISTS idx_groups_type ON groups(type);
+CREATE INDEX IF NOT EXISTS idx_groups_is_active ON groups(is_active);
+CREATE INDEX IF NOT EXISTS idx_groups_username ON groups(username);
 
 -- Create triggers for updating updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_activities_updated_at 
@@ -130,4 +152,11 @@ CREATE TRIGGER IF NOT EXISTS update_telegram_user_states_modified_at
     FOR EACH ROW 
     BEGIN
         UPDATE telegram_user_states SET modified_at = datetime('now') WHERE telegram_id = NEW.telegram_id;
+    END;
+
+CREATE TRIGGER IF NOT EXISTS update_groups_updated_at 
+    AFTER UPDATE ON groups 
+    FOR EACH ROW 
+    BEGIN
+        UPDATE groups SET updated_at = datetime('now') WHERE id = NEW.id;
     END;

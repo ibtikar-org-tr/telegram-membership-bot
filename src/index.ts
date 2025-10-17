@@ -6,6 +6,7 @@ import apiRoutes from './routes/api';
 import testingRoutes from './routes/testing';
 import { taskRoutes } from './routes/task-follower/task';
 import { taskSheetRoutes } from './routes/task-follower/sheet';
+import groupsRouter from './routes/groups';
 
 const app = new Hono<{ Bindings: Environment }>();
 
@@ -38,6 +39,9 @@ app.route('/api/testing', testingRoutes);
 // Member Google Sheets routes
 app.route('/api/tasks', taskRoutes);
 app.route('/api/task-sheets', taskSheetRoutes);
+
+// Groups routes
+app.route('/api/groups', groupsRouter);
 
 // 404 handler ----------------------
 app.notFound((c) => {
