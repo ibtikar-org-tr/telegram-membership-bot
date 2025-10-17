@@ -13,6 +13,7 @@ import LLMService from '../services/ai-services/deepseek';
 import { getSystemPrompt } from '../utils/ai-config';
 import { GroupServices } from '../services/group-services';
 import { GroupMemberTrackingService } from '../services/group-member-tracking';
+import { ShameService } from '../services/task-follower/shame-service';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 
@@ -36,6 +37,28 @@ telegram.post('/webhook', async (c) => {
       const telegramService = new TelegramService(c.env);
       const memberSheetServices = new MemberSheetServices(c.env);
       const userStateService = new TelegramUserStateService(c.env);
+
+      // Handle "shame_" callback (shame button clicks)
+      if (callbackData?.startsWith('shame_')) {
+        const taskId = callbackData.replace('shame_', '');
+        const db = new D1DatabaseConnection(c.env.DB);
+        const shameService = new ShameService(db, c.env);
+
+        const result = await shameService.handleShameButtonClick(taskId, telegramId.toString());
+
+        // Answer the callback query with appropriate message
+        await fetch(`https://api.telegram.org/bot${c.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callback_query_id: callbackQuery.id,
+            text: result.message.replace(/\\/g, ''), // Remove markdown escaping for alert
+            show_alert: true
+          })
+        });
+
+        return c.json({ ok: true });
+      }
 
       // Handle "check_subscription" callback
       if (callbackData === 'check_subscription') {

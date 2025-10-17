@@ -3,6 +3,7 @@ import { Environment } from '../../types';
 import { D1DatabaseConnection } from '../../crud/database';
 import { TaskService } from '../../services/task-follower/task-service';
 import { TaskModel } from '../../models/task-follower/task';
+import { ShameService } from '../../services/task-follower/shame-service';
 
 type Variables = {
   taskService: TaskService;
@@ -313,6 +314,76 @@ taskRoutes.post('/check-work-hours', async (c) => {
     return c.json({ success: true, message: 'Work hours check completed' });
   } catch (error) {
     console.error('Error checking tasks during work hours:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500);
+  }
+});
+
+// Get all delayed tasks (overdue by more than 2 days)
+taskRoutes.get('/delayed', async (c) => {
+  try {
+    const db = new D1DatabaseConnection(c.env.DB);
+    const shameService = new ShameService(db, c.env);
+    
+    const delayedTasks = await shameService.getDelayedTasks();
+    return c.json({ success: true, data: delayedTasks, count: delayedTasks.length });
+  } catch (error) {
+    console.error('Error getting delayed tasks:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500);
+  }
+});
+
+// Send shame notifications for a specific task
+taskRoutes.post('/:id/shame', async (c) => {
+  try {
+    const taskId = c.req.param('id');
+    const db = new D1DatabaseConnection(c.env.DB);
+    const shameService = new ShameService(db, c.env);
+    
+    const result = await shameService.sendShameNotifications(taskId);
+    
+    if (!result.success) {
+      return c.json({ 
+        success: false, 
+        error: result.error 
+      }, 400);
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: 'Shame notifications sent',
+      notifiedCount: result.notifiedCount
+    });
+  } catch (error) {
+    console.error('Error sending shame notifications:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500);
+  }
+});
+
+// Process all delayed tasks and send shame notifications
+taskRoutes.post('/shame/process-all', async (c) => {
+  try {
+    const db = new D1DatabaseConnection(c.env.DB);
+    const shameService = new ShameService(db, c.env);
+    
+    const result = await shameService.processDelayedTasks();
+    
+    return c.json({ 
+      success: result.success,
+      message: 'Shame notifications processing completed',
+      processedCount: result.processedCount,
+      totalNotifications: result.totalNotifications
+    });
+  } catch (error) {
+    console.error('Error processing delayed tasks:', error);
     return c.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
