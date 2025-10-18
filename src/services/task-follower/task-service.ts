@@ -130,6 +130,59 @@ export class TaskService {
     }
   }
 
+  /**
+   * Check if task has meaningful changes that require database update
+   * Compares key fields and ignores timestamp-only changes
+   */
+  private hasTaskChanges(existingTask: Task, newTask: Partial<Task>): boolean {
+    // Fields to compare for changes
+    const fieldsToCompare: (keyof Task)[] = [
+      'ownerID', 'ownerName', 'ownerEmail', 'ownerPhone',
+      'owner_telegram_id', 'owner_telegram_username',
+      'managerID', 'managerName',
+      'manager_telegram_id', 'manager_telegram_username',
+      'points', 'status', 'taskText', 'priority', 'notes', 'milestone'
+    ];
+
+    // Check if any field has changed
+    for (const field of fieldsToCompare) {
+      const existingValue = existingTask[field];
+      const newValue = newTask[field];
+      
+      // Skip if new value is undefined (not being updated)
+      if (newValue === undefined) continue;
+      
+      // Compare values (handle null/empty string as equivalent)
+      const normalizedExisting = existingValue === null ? '' : String(existingValue || '');
+      const normalizedNew = newValue === null ? '' : String(newValue || '');
+      
+      if (normalizedExisting !== normalizedNew) {
+        return true; // Found a difference
+      }
+    }
+
+    // Check date fields separately
+    const dateFieldsToCompare: (keyof Task)[] = ['dueDate', 'completed_at', 'blocked_at', 'last_sent', 'last_reported'];
+    
+    for (const field of dateFieldsToCompare) {
+      const existingValue = existingTask[field];
+      const newValue = newTask[field];
+      
+      // Skip if new value is undefined (not being updated)
+      if (newValue === undefined) continue;
+      
+      // Compare dates
+      const existingDate = existingValue ? new Date(existingValue).getTime() : null;
+      const newDate = newValue ? new Date(newValue as Date).getTime() : null;
+      
+      if (existingDate !== newDate) {
+        return true; // Found a difference
+      }
+    }
+
+    return false; // No meaningful changes found
+  }
+
   async updateTaskById(taskId: string, task: Partial<Task>): Promise<Task | null> {
     // Populate telegram IDs before updating
     await this.populateTelegramIds(task);
@@ -395,6 +448,8 @@ export class TaskService {
         }
 
         let rowNumber = 1;
+        let updatedCount = 0;
+        let skippedCount = 0;
         const pageUserIdsAndNames: Array<[string, string]> = [];
         
         // Get manager from first row or use default
@@ -548,8 +603,13 @@ export class TaskService {
                 taskObj.last_reported = existingTask.last_reported;
               }
 
-              // Update existing task
-              await this.updateTaskById(existingTask.id!, taskObj);
+              // Only update if there are actual changes (saves database write operations)
+              if (this.hasTaskChanges(existingTask, taskObj)) {
+                await this.updateTaskById(existingTask.id!, taskObj);
+                updatedCount++;
+              } else {
+                skippedCount++;
+              }
             } else {
               // Create new task
               if (send) {
@@ -565,6 +625,9 @@ export class TaskService {
           
           rowNumber++;
         }
+
+        // Log update statistics for this project
+        console.log(`Project ${projectName}: ${updatedCount} tasks updated, ${skippedCount} tasks unchanged (${skippedCount > 0 ? Math.round(skippedCount / (updatedCount + skippedCount) * 100) : 0}% saved)`);
 
         // TODO: Handle activity reporting
         // const activity = await this.activityCrud.getOrCreateActivity(manager.number, manager.name1, projectName);
