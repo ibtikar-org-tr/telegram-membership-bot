@@ -13,7 +13,8 @@ export async function handleScheduledTaskCheck(env: Environment): Promise<Respon
     // Check tasks during work hours only
     // Shame notifications are now automatically triggered when late task reminders are sent
     // for tasks that are 2+ days overdue
-    await taskService.checkAllSheetsAtWorkHours();
+    // OPTIMIZED: Process one sheet per cron trigger to avoid CPU time limits
+    await taskService.checkOneSheetAtWorkHours();
     
     return new Response(JSON.stringify({
       success: true,

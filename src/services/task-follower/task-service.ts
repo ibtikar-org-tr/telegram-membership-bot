@@ -1056,6 +1056,50 @@ ${task.owner_telegram_username ? `📱 *معرف التيليجرام:* @${escap
     }
   }
 
+  /**
+   * Check one sheet per cron trigger in a round-robin fashion
+   * This reduces CPU time per execution and avoids hitting the 50ms CPU limit
+   */
+  async checkOneSheetAtWorkHours(): Promise<void> {
+    const istanbulTime = new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' });
+    const hour = new Date(istanbulTime).getHours();
+    
+    if (hour < 8 || hour >= 22) {
+      console.log('Outside of working hours. Current time:', istanbulTime);
+      return;
+    }
+
+    console.log('Running check_one_sheet_at_work_hours at:', new Date());
+    
+    try {
+      // Pre-load members cache once
+      await this.getMembersCache();
+      console.log('Members cache loaded successfully');
+      
+      // Get all sheets
+      const sheets = await this.sheetCrud.getAll();
+      if (sheets.length === 0) {
+        console.log('No sheets found to process');
+        return;
+      }
+
+      // Use timestamp to rotate through sheets in a round-robin fashion
+      // Each execution (every 5 minutes) will process a different sheet
+      const currentMinute = new Date().getMinutes();
+      const sheetIndex = Math.floor(currentMinute / 5) % sheets.length;
+      const sheetToProcess = sheets[sheetIndex];
+      
+      console.log(`Processing sheet ${sheetIndex + 1} of ${sheets.length}: ${sheetToProcess.sheetID}`);
+      
+      await this.checkTasksFromSheet(sheetToProcess.sheetID);
+      
+      console.log(`Successfully processed sheet: ${sheetToProcess.sheetID}`);
+    } catch (error) {
+      console.error('Error in checkOneSheetAtWorkHours:', error);
+      throw error;
+    }
+  }
+
   // Get tasks that need attention (overdue, due soon, etc.)
   async getTasksNeedingAttention(): Promise<{
     overdue: Task[];
