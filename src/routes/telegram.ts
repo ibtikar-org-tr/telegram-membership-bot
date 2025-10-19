@@ -10,7 +10,7 @@ import { TaskCrud } from '../crud/task-follower/task';
 import { D1DatabaseConnection } from '../crud/database';
 import { escapeMarkdownV2 } from '../utils/helpers';
 import LLMService from '../services/ai-services/deepseek';
-import { getSystemPrompt } from '../utils/ai-config';
+import { AI_CONFIG } from '../utils/ai-config';
 import { GroupServices } from '../services/group-services';
 import { GroupMemberTrackingService } from '../services/group-member-tracking';
 import { ShameService } from '../services/task-follower/shame-service';
@@ -336,7 +336,7 @@ _هذه المعلومات مسجلة في نظامنا\\._
             }> = [];
 
             // Build enhanced system prompt with task context
-            let systemPrompt = getSystemPrompt();
+            let systemPrompt = AI_CONFIG;
             
             if (recentTasks.length > 0) {
               systemPrompt += '\n\n--- USER\'S RECENT TASKS (Last 24 hours) ---\n';
