@@ -123,7 +123,7 @@ export class ShameService {
 
       // Prepare the message
       const messageText = `
-⚠️ *تنبيه مهمة متأخرة*
+🫣 *فضيحة! - لدى زميلك مهمة متأخرة*
 
 أحد زملائك في المشروع لديه مهمة متأخرة\\!
 
@@ -139,7 +139,7 @@ export class ShameService {
       const keyboard: InlineKeyboardButton[][] = [
         [
           {
-            text: '😤 Say "Shame on you!"',
+            text: '😤 أرسل "عارٌ عليك!"',
             callback_data: `shame_${taskId}`
           }
         ]
@@ -226,9 +226,9 @@ export class ShameService {
 
       // Send shame message to task owner
       const shameMessage = `
-😤 *Shame on you\\!*
+😤 *عارٌ عليك!*
 
-لقد تلقيت رسالة "Shame on you" من أحد زملائك في المشروع بسبب تأخرك في المهمة:
+لقد تلقيت رسالة "عارٌ عليك" من أحد زملائك في المشروع بسبب تأخرك في المهمة:
 
 📋 *المشروع:* ${escapeMarkdownV2(task.projectName)}
 📝 *المهمة:* ${escapeMarkdownV2(task.taskText)}
@@ -245,7 +245,7 @@ export class ShameService {
 
         return {
           success: true,
-          message: '✅ تم إرسال رسالة "Shame on you" بنجاح',
+          message: '✅ تم إرسال رسالة "عارٌ عليك!" بنجاح',
           notifyOwner: true
         };
       } catch (error) {
