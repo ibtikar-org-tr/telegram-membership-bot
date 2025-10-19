@@ -9,7 +9,7 @@ import { sendMessageToMember } from '../membership-manager/member-services';
 import { MemberSheetServices } from '../membership-manager/member-sheet-services';
 import { Environment } from '../../types';
 import { DatabaseConnection } from '../../crud/base';
-import { escapeMarkdownV2 } from '../../utils/helpers';
+import { escapeMarkdownV2, formatPriorityToArabic } from '../../utils/helpers';
 
 interface Contact {
   number: string; // this is the membership_number
@@ -704,7 +704,7 @@ export class TaskService {
 🆕 *مهمّة جديدة*
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
-⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(formatPriorityToArabic(task.priority))}
 📅 *آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
@@ -755,7 +755,7 @@ export class TaskService {
 ⏰ *تذكير بالمهمّة*
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
-⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(formatPriorityToArabic(task.priority))}
 📅 *آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
@@ -809,7 +809,7 @@ export class TaskService {
 🚨 *مهمّة متأخرة*
 
 📋 *المهمّة:* ${escapeMarkdownV2(task.taskText)}
-⚡ *الاستعجاليّة:* ${escapeMarkdownV2(task.priority)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(formatPriorityToArabic(task.priority))}
 📅 *كان آخر موعد للتّسليم:* ${escapeMarkdownV2(this.formatDate(task.dueDate))}
 
 📝 *ملاحظات:* ${escapeMarkdownV2(task.notes || 'لا توجد ملاحظات')}
@@ -883,7 +883,7 @@ export class TaskService {
 📅 *تحديث موعد التسليم*
 
 📋 *المهمّة:* ${escapeMarkdownV2(newTask.taskText)}
-⚡ *الاستعجاليّة:* ${escapeMarkdownV2(newTask.priority)}
+⚡ *الاستعجاليّة:* ${escapeMarkdownV2(formatPriorityToArabic(newTask.priority))}
 📅 *الموعد الجديد:* ${escapeMarkdownV2(this.formatDate(newTask.dueDate))}
 📅 *الموعد السابق:* ${escapeMarkdownV2(this.formatDate(oldTask.dueDate))}
 

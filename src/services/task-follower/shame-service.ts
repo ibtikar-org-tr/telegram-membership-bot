@@ -3,7 +3,7 @@ import { TaskCrud } from '../../crud/task-follower/task';
 import { Task } from '../../models/task-follower/task';
 import { TelegramService } from '../telegram';
 import { Environment } from '../../types';
-import { escapeMarkdownV2 } from '../../utils/helpers';
+import { escapeMarkdownV2, formatPriorityToArabic } from '../../utils/helpers';
 import { InlineKeyboardButton } from '../../types';
 
 export class ShameService {
@@ -130,7 +130,7 @@ export class ShameService {
 📋 *المشروع:* ${escapeMarkdownV2(task.projectName)}
 📝 *المهمة:* ${escapeMarkdownV2(task.taskText)}
 ⏰ *متأخرة بـ:* ${daysOverdue} يوم
-⚡ *الأولوية:* ${escapeMarkdownV2(task.priority)}
+⚡ *الأولوية:* ${escapeMarkdownV2(formatPriorityToArabic(task.priority))}
 
 يمكنك تذكيره بالضغط على الزر أدناه 👇
       `.trim();
