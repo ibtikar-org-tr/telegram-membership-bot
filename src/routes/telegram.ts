@@ -109,6 +109,43 @@ telegram.post('/webhook', async (c) => {
       return c.json({ ok: true });
     }
     
+    // Handle chat join requests
+    if (update.chat_join_request) {
+      const joinRequest = update.chat_join_request;
+      const telegramId = joinRequest.from.id;
+      const chatId = joinRequest.chat.id;
+      const username = joinRequest.from.username;
+      const firstName = joinRequest.from.first_name;
+      const lastName = joinRequest.from.last_name;
+      
+      console.log('Received chat join request:', {
+        chatId,
+        chatTitle: joinRequest.chat.title,
+        userId: telegramId,
+        username,
+        firstName,
+        lastName,
+        date: new Date(joinRequest.date * 1000).toISOString()
+      });
+      
+      // You can add your custom logic here to:
+      // 1. Automatically approve/decline the request
+      // 2. Check if user is in member sheets
+      // 3. Send notification to admins
+      // 4. Store the request for later processing
+      
+      // Example: Log the request (you can extend this with your own logic)
+      const telegramService = new TelegramService(c.env);
+      
+      // Optionally approve the request automatically
+      // await telegramService.approveChatJoinRequest(chatId, telegramId);
+      
+      // Optionally decline the request
+      // await telegramService.declineChatJoinRequest(chatId, telegramId);
+      
+      return c.json({ ok: true });
+    }
+    
     if (!update.message) {
       return c.json({ ok: true });
     }

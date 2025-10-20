@@ -200,6 +200,11 @@ export class TelegramService {
       },
       body: JSON.stringify({
         url: webhookUrl,
+        allowed_updates: [
+          'message',
+          'callback_query',
+          'chat_join_request'
+        ]
       }),
     });
 
@@ -376,5 +381,59 @@ _يُستخدم هذا البوت للتحقق من العضوية والإشع�
     `;
 
     await this.sendMessage(chatId, welcomeText.trim());
+  }
+
+  async approveChatJoinRequest(chatId: number | string, userId: number): Promise<void> {
+    const url = `https://api.telegram.org/bot${this.botToken}/approveChatJoinRequest`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          user_id: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to approve chat join request: ${response.status} ${error}`);
+      }
+
+      console.log(`Approved chat join request for user ${userId} in chat ${chatId}`);
+    } catch (error) {
+      console.error('Error approving chat join request:', error);
+      throw error;
+    }
+  }
+
+  async declineChatJoinRequest(chatId: number | string, userId: number): Promise<void> {
+    const url = `https://api.telegram.org/bot${this.botToken}/declineChatJoinRequest`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          user_id: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to decline chat join request: ${response.status} ${error}`);
+      }
+
+      console.log(`Declined chat join request for user ${userId} in chat ${chatId}`);
+    } catch (error) {
+      console.error('Error declining chat join request:', error);
+      throw error;
+    }
   }
 }

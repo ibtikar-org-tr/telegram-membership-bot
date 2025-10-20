@@ -67,6 +67,37 @@ export interface TelegramUpdate {
     };
     data?: string;
   };
+  chat_join_request?: {
+    chat: {
+      id: number;
+      title?: string;
+      username?: string;
+      type: string;
+    };
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+    };
+    user_chat_id: number;
+    date: number;
+    bio?: string;
+    invite_link?: {
+      invite_link: string;
+      creator: {
+        id: number;
+        is_bot: boolean;
+        first_name: string;
+        username?: string;
+      };
+      creates_join_request: boolean;
+      is_primary?: boolean;
+      is_revoked?: boolean;
+    };
+  };
 }
 
 export interface InlineKeyboardButton {
