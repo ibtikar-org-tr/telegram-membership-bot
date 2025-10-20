@@ -494,4 +494,59 @@ _يُستخدم هذا البوت للتحقق من العضوية والإشع�
       return false;
     }
   }
+
+  async createChatInviteLink(
+    chatId: number | string,
+    userId: number,
+    userName?: string
+  ): Promise<string | null> {
+    const url = `https://api.telegram.org/bot${this.botToken}/createChatInviteLink`;
+    
+    try {
+      // Create an invite link that:
+      // 1. Can only be used once (member_limit: 1)
+      // 2. Is named after the user for tracking
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          name: userName ? `Link for ${userName}` : `Link for user ${userId}`,
+          member_limit: 1, // Can only be used once
+          creates_join_request: false // No join request needed, direct join
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`Failed to create chat invite link: ${response.status} ${error}`);
+        return null;
+      }
+
+      const result = await response.json() as { 
+        ok: boolean; 
+        result?: { 
+          invite_link: string;
+          name?: string;
+          creator: any;
+          creates_join_request: boolean;
+          is_primary: boolean;
+          is_revoked: boolean;
+          member_limit?: number;
+        } 
+      };
+
+      if (result.ok && result.result) {
+        console.log(`Created private invite link for user ${userId}: ${result.result.invite_link}`);
+        return result.result.invite_link;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error creating chat invite link:', error);
+      return null;
+    }
+  }
 }

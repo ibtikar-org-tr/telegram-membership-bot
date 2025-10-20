@@ -157,22 +157,67 @@ telegram.post('/webhook', async (c) => {
       }
       
       const telegramService = new TelegramService(c.env);
+      const memberSheetServices = new MemberSheetServices(c.env);
       
       // Check if the user has the bot activated (can receive messages)
       const hasBotActivated = await telegramService.canSendMessageToUser(telegramId);
       
       if (hasBotActivated) {
-        // User has bot activated - send direct message
-        try {
-          await telegramService.sendMessage(
-            telegramId,
-            `مرحباً ${escapeMarkdownV2(fullName)}\\!\n\n` +
-            `لقد تلقينا طلب انضمامك إلى المجموعة\\.\n\n` +
-            `يرجى استخدام الأمر /verify للتحقق من عضويتك حتى تتمكن من الوصول إلى المجموعة\\.`
-          );
-          console.log(`Sent verification message to user ${telegramId} who has bot activated`);
-        } catch (error) {
-          console.error('Error sending message to user with bot activated:', error);
+        // User has bot activated - check if they are verified
+        const member = await memberSheetServices.getMemberByTelegramId(telegramId.toString());
+        
+        if (member && member.telegram_id) {
+          // User is verified - create and send private invite link
+          try {
+            const inviteLink = await telegramService.createChatInviteLink(
+              chatId,
+              telegramId,
+              fullName
+            );
+            
+            if (inviteLink) {
+              // Send the private invite link to the user
+              await telegramService.sendMessage(
+                telegramId,
+                `مرحباً ${escapeMarkdownV2(fullName)}\\! 🎉\n\n` +
+                `تم التحقق من عضويتك بنجاح\\.\n\n` +
+                `إليك رابط الانضمام الخاص بك:\n` +
+                `${escapeMarkdownV2(inviteLink)}\n\n` +
+                `⚠️ *ملاحظة مهمة:*\n` +
+                `• هذا الرابط خاص بك فقط\n` +
+                `• يمكن استخدامه مرة واحدة فقط\n` +
+                `• لا تشاركه مع أي شخص آخر`
+              );
+              
+              console.log(`Sent private invite link to verified user ${telegramId}`);
+              
+              // Optionally approve the join request automatically
+              // await telegramService.approveChatJoinRequest(chatId, telegramId);
+            } else {
+              // Failed to create invite link - fall back to manual approval
+              await telegramService.sendMessage(
+                telegramId,
+                `مرحباً ${escapeMarkdownV2(fullName)}\\!\n\n` +
+                `تم التحقق من عضويتك\\. سيتم الموافقة على طلبك قريباً\\.`
+              );
+              console.log(`Failed to create invite link, sent confirmation to user ${telegramId}`);
+            }
+          } catch (error) {
+            console.error('Error creating/sending invite link:', error);
+          }
+        } else {
+          // User has bot but not verified - ask them to verify
+          try {
+            await telegramService.sendMessage(
+              telegramId,
+              `مرحباً ${escapeMarkdownV2(fullName)}\\!\n\n` +
+              `لقد تلقينا طلب انضمامك إلى المجموعة\\.\n\n` +
+              `يرجى استخدام الأمر /verify للتحقق من عضويتك حتى تتمكن من الوصول إلى المجموعة\\.`
+            );
+            console.log(`Sent verification message to unverified user ${telegramId}`);
+          } catch (error) {
+            console.error('Error sending message to user with bot activated:', error);
+          }
         }
       } else {
         // User doesn't have bot activated - send silent message to group
