@@ -128,13 +128,39 @@ telegram.post('/webhook', async (c) => {
         date: new Date(joinRequest.date * 1000).toISOString()
       });
       
+      // Store the join request in all_messages_groups table
+      try {
+        const db = new D1DatabaseConnection(c.env.DB);
+        const groupMessagesCrud = new AllMessagesGroupsCrud(db);
+        
+        // Create a message-like structure for the join request
+        const joinRequestMessage = {
+          chat: joinRequest.chat,
+          from: joinRequest.from,
+          date: joinRequest.date,
+          user_chat_id: joinRequest.user_chat_id,
+          bio: joinRequest.bio,
+          invite_link: joinRequest.invite_link,
+          // Mark this as a join request
+          message_type: 'chat_join_request'
+        };
+        
+        await groupMessagesCrud.storeMessage(
+          joinRequestMessage,
+          `Join request from ${firstName} ${lastName || ''} (@${username || 'no_username'})`
+        );
+        
+        console.log('Stored chat join request in database');
+      } catch (storageError) {
+        console.error('Failed to store chat join request:', storageError);
+      }
+      
       // You can add your custom logic here to:
       // 1. Automatically approve/decline the request
       // 2. Check if user is in member sheets
       // 3. Send notification to admins
-      // 4. Store the request for later processing
+      // 4. Process the request based on your business logic
       
-      // Example: Log the request (you can extend this with your own logic)
       const telegramService = new TelegramService(c.env);
       
       // Optionally approve the request automatically
