@@ -16,7 +16,8 @@ export class TelegramService {
     parseMode?: string, 
     inlineKeyboard?: InlineKeyboardButton[][],
     messageThreadId?: number,
-    replyToMessageId?: number
+    replyToMessageId?: number,
+    disableNotification?: boolean
   ): Promise<number | undefined> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
 
@@ -47,6 +48,11 @@ export class TelegramService {
     // Add reply_to_message_id if provided (to reply to a specific message)
     if (replyToMessageId !== undefined) {
       payload.reply_to_message_id = replyToMessageId;
+    }
+
+    // Add disable_notification if provided (for silent messages)
+    if (disableNotification !== undefined) {
+      payload.disable_notification = disableNotification;
     }
 
     const response = await fetch(url, {
@@ -434,6 +440,58 @@ _يُستخدم هذا البوت للتحقق من العضوية والإشع�
     } catch (error) {
       console.error('Error declining chat join request:', error);
       throw error;
+    }
+  }
+
+  async deleteMessage(chatId: number | string, messageId: number): Promise<boolean> {
+    const url = `https://api.telegram.org/bot${this.botToken}/deleteMessage`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`Failed to delete message: ${response.status} ${error}`);
+        return false;
+      }
+
+      console.log(`Deleted message ${messageId} in chat ${chatId}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }
+
+  async canSendMessageToUser(userId: number): Promise<boolean> {
+    const url = `https://api.telegram.org/bot${this.botToken}/sendChatAction`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: userId,
+          action: 'typing',
+        }),
+      });
+
+      // If we can send a chat action, the user has started the bot
+      return response.ok;
+    } catch (error) {
+      console.error('Error checking if user has bot activated:', error);
+      return false;
     }
   }
 }

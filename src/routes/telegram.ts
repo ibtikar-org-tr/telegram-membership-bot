@@ -116,7 +116,8 @@ telegram.post('/webhook', async (c) => {
       const chatId = joinRequest.chat.id;
       const username = joinRequest.from.username;
       const firstName = joinRequest.from.first_name;
-      const lastName = joinRequest.from.last_name;
+      const lastName = joinRequest.from.last_name || '';
+      const fullName = `${firstName} ${lastName}`.trim();
       
       console.log('Received chat join request:', {
         chatId,
@@ -147,7 +148,7 @@ telegram.post('/webhook', async (c) => {
         
         await groupMessagesCrud.storeMessage(
           joinRequestMessage,
-          `Join request from ${firstName} ${lastName || ''} (@${username || 'no_username'})`
+          `Join request from ${fullName} (@${username || 'no_username'})`
         );
         
         console.log('Stored chat join request in database');
@@ -155,19 +156,58 @@ telegram.post('/webhook', async (c) => {
         console.error('Failed to store chat join request:', storageError);
       }
       
-      // You can add your custom logic here to:
-      // 1. Automatically approve/decline the request
-      // 2. Check if user is in member sheets
-      // 3. Send notification to admins
-      // 4. Process the request based on your business logic
-      
       const telegramService = new TelegramService(c.env);
       
-      // Optionally approve the request automatically
-      // await telegramService.approveChatJoinRequest(chatId, telegramId);
+      // Check if the user has the bot activated (can receive messages)
+      const hasBotActivated = await telegramService.canSendMessageToUser(telegramId);
       
-      // Optionally decline the request
-      // await telegramService.declineChatJoinRequest(chatId, telegramId);
+      if (hasBotActivated) {
+        // User has bot activated - send direct message
+        try {
+          await telegramService.sendMessage(
+            telegramId,
+            `مرحباً ${escapeMarkdownV2(fullName)}\\!\n\n` +
+            `لقد تلقينا طلب انضمامك إلى المجموعة\\.\n\n` +
+            `يرجى استخدام الأمر /verify للتحقق من عضويتك حتى تتمكن من الوصول إلى المجموعة\\.`
+          );
+          console.log(`Sent verification message to user ${telegramId} who has bot activated`);
+        } catch (error) {
+          console.error('Error sending message to user with bot activated:', error);
+        }
+      } else {
+        // User doesn't have bot activated - send silent message to group
+        try {
+          const usernameText = username ? `@${escapeMarkdownV2(username)}` : '';
+          const messageText = `عزيزي/عزيزتي ${escapeMarkdownV2(fullName)} ${usernameText}\n\n` +
+            `يرجى التواصل مع هذا البوت على الخاص حتى تتمكن من الانضمام إلى المجموعة\\.`;
+          
+          const sentMessageId = await telegramService.sendMessage(
+            chatId,
+            messageText,
+            'MarkdownV2',
+            undefined,
+            undefined,
+            undefined,
+            true // disable_notification for silent message
+          );
+          
+          console.log(`Sent silent message to group for user ${telegramId} who doesn't have bot activated`);
+          
+          // Schedule message deletion after 10 seconds
+          // Note: Using waitUntil to ensure the deletion happens even after response is sent
+          if (sentMessageId) {
+            c.executionCtx.waitUntil(
+              (async () => {
+                await new Promise(resolve => setTimeout(resolve, 10000));
+                await telegramService.deleteMessage(chatId, sentMessageId);
+                console.log(`Deleted notification message ${sentMessageId} from group ${chatId}`);
+              })()
+            );
+          }
+        } catch (error) {
+          console.error('Error sending/deleting message to group:', error);
+        }
+      }
       
       return c.json({ ok: true });
     }

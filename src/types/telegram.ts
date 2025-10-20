@@ -117,6 +117,7 @@ export interface SendMessageRequest {
   reply_markup?: InlineKeyboardMarkup;
   message_thread_id?: number;
   reply_to_message_id?: number;
+  disable_notification?: boolean;
 }
 
 export interface SendPhotoRequest {
