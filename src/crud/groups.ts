@@ -141,6 +141,28 @@ export class GroupsCrud extends BaseCrud<Group> {
   }
 
   /**
+   * Get all active groups that don't need admin approval
+   */
+  async getPublicGroups(): Promise<GroupWithAdmins[]> {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE is_active = 1 AND needs_admin_approval = 0 ORDER BY title ASC`;
+      const result = await this.db.prepare(query).bind().all<Group>();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch public groups');
+      }
+      
+      return result.results.map(group => ({
+        ...group,
+        admins: JSON.parse(group.admins || '[]')
+      }));
+    } catch (error) {
+      console.error('Error getting public groups:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get groups by type with parsed admins
    * @param type Group type (e.g., 'group', 'supergroup', 'channel')
    */
