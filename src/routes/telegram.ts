@@ -14,7 +14,7 @@ import { AI_CONFIG } from '../utils/ai-config';
 import { GroupServices } from '../services/group-services';
 import { GroupMemberTrackingService } from '../services/group-member-tracking';
 import { ShameService } from '../services/task-follower/shame-service';
-import { handleChatJoinRequest } from '../handlers/chat-join-request-handler';
+import { handleChatJoinRequest } from '../services/membership-manager/chat-join-request-handler';
 
 const telegram = new Hono<{ Bindings: Environment }>();
 

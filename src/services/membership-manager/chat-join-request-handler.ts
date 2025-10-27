@@ -1,10 +1,10 @@
 import { Context } from 'hono';
-import { Environment } from '../types';
-import { TelegramService } from '../services/telegram';
-import { MemberSheetServices } from '../services/membership-manager/member-sheet-services';
-import { AllMessagesGroupsCrud } from '../crud/all-messages-groups';
-import { D1DatabaseConnection } from '../crud/database';
-import { escapeMarkdownV2 } from '../utils/helpers';
+import { Environment } from '../../types';
+import { TelegramService } from '../telegram';
+import { MemberSheetServices } from './member-sheet-services';
+import { AllMessagesGroupsCrud } from '../../crud/all-messages-groups';
+import { D1DatabaseConnection } from '../../crud/database';
+import { escapeMarkdownV2 } from '../../utils/helpers';
 
 /**
  * Handler for Telegram chat join requests
