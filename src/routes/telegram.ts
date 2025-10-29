@@ -255,6 +255,20 @@ telegram.post('/webhook', async (c) => {
         // Track member changes
         const memberTrackingService = new GroupMemberTrackingService(db);
         await memberTrackingService.processMessage(update.message);
+        
+        // Delete join/leave service messages immediately
+        // Check if this is a member join or leave message
+        const isJoinLeaveMessage = message.new_chat_members || message.left_chat_member;
+        if (isJoinLeaveMessage && message.message_id) {
+          const telegramService = new TelegramService(c.env);
+          try {
+            await telegramService.deleteMessage(message.chat.id, message.message_id);
+            console.log(`Deleted join/leave service message ${message.message_id} in chat ${message.chat.id}`);
+          } catch (deleteError) {
+            // Log error but don't fail - the message might have already been deleted
+            console.error('Failed to delete join/leave message:', deleteError);
+          }
+        }
       }
     } catch (storageError) {
       // Log error but don't fail the request - message processing should continue

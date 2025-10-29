@@ -22,6 +22,23 @@ export interface TelegramUpdate {
     text?: string;
     message_thread_id?: number;
     is_topic_message?: boolean;
+    // Service messages for group member changes
+    new_chat_members?: Array<{
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+    }>;
+    left_chat_member?: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+    };
     reply_to_message?: {
       message_id: number;
       from: {
