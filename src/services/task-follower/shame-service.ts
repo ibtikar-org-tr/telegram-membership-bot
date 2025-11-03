@@ -127,6 +127,7 @@ export class ShameService {
 
 أحد زملائك في المشروع لديه مهمة متأخرة\\!
 
+🤡 *الكسول:* ${escapeMarkdownV2(task.ownerName)}
 📋 *المشروع:* ${escapeMarkdownV2(task.projectName)}
 📝 *المهمة:* ${escapeMarkdownV2(task.taskText)}
 ⏰ *متأخرة بـ:* ${daysOverdue} يوم
