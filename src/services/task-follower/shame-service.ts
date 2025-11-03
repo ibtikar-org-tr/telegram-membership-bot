@@ -140,7 +140,7 @@ export class ShameService {
       const keyboard: InlineKeyboardButton[][] = [
         [
           {
-            text: '😤 أرسل "عارٌ عليك!"',
+            text: '😤 أرسل "عارٌ عليك\\!"',
             callback_data: `shame_${taskId}`
           }
         ]
@@ -227,7 +227,7 @@ export class ShameService {
 
       // Send shame message to task owner
       const shameMessage = `
-😤 *عارٌ عليك!*
+😤 *عارٌ عليك\\!*
 
 لقد تلقيت رسالة "عارٌ عليك" من أحد زملائك في المشروع بسبب تأخرك في المهمة:
 
@@ -246,7 +246,7 @@ export class ShameService {
 
         return {
           success: true,
-          message: '✅ تم إرسال رسالة "عارٌ عليك!" بنجاح',
+          message: '✅ تم إرسال رسالة "عارٌ عليك\\!" بنجاح',
           notifyOwner: true
         };
       } catch (error) {
