@@ -411,6 +411,7 @@ _هذه المعلومات مسجلة في نظامنا\\._
       const db = new D1DatabaseConnection(c.env.DB);
       const { GroupsCrud } = await import('../crud/groups');
       const groupsCrud = new GroupsCrud(db);
+      const telegramService = new TelegramService(c.env);
       
       // Get public groups (active and no admin approval needed)
       const publicGroups = await groupsCrud.getPublicGroups();
@@ -430,6 +431,15 @@ _هذه المعلومات مسجلة في نظامنا\\._
       const buttons: InlineKeyboardButton[][] = [];
       
       for (const group of publicGroups) {
+        // Fetch live member count
+        let liveMemberCount = group.member_count || 0;
+        try {
+          liveMemberCount = await telegramService.getChatMemberCount(group.chat_id);
+        } catch (error) {
+          console.warn(`Failed to fetch member count for group ${group.chat_id}:`, error);
+          // Fall back to stored count if live fetch fails
+        }
+        
         // Add group info to message
         const groupNumber = publicGroups.indexOf(group) + 1;
         groupsText += `*${groupNumber}\\. ${escapeMarkdownV2(group.title)}*\n`;
@@ -438,9 +448,7 @@ _هذه المعلومات مسجلة في نظامنا\\._
           groupsText += `   ${escapeMarkdownV2(group.description)}\n`;
         }
         
-        if (group.member_count) {
-          groupsText += `   👥 ${group.member_count} عضو\n`;
-        }
+        groupsText += `   👥 ${liveMemberCount} عضو\n`;
         
         groupsText += '\n';
         
