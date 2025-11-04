@@ -1114,4 +1114,24 @@ ${task.owner_telegram_username ? `📱 *معرف التيليجرام:* @${escap
 
     return { overdue, dueSoon, blocked };
   }
+
+  // Get manager task summary for daily report
+  async getManagerTaskSummary(managerId: string): Promise<{
+    completed: Task[];
+    pending: Task[];
+    overdue: Task[];
+  }> {
+    const [completed, pending, overdue] = await Promise.all([
+      this.taskCrud.getTasksCompletedByManagerInLastHours(managerId, 24),
+      this.taskCrud.getPendingTasksByManager(managerId),
+      this.taskCrud.getOverdueTasksByManager(managerId)
+    ]);
+
+    return { completed, pending, overdue };
+  }
+
+  // Get unique projects for a manager
+  async getManagerProjects(managerId: string): Promise<string[]> {
+    return await this.taskCrud.getManagerProjects(managerId);
+  }
 }

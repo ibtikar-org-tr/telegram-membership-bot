@@ -141,6 +141,123 @@ export class TaskCrud extends BaseCrud<Task> {
     }
   }
 
+  // Get tasks completed in the last N hours
+  async getTasksCompletedInLastHours(hours: number = 24): Promise<Task[]> {
+    try {
+      const dateThreshold = new Date();
+      dateThreshold.setHours(dateThreshold.getHours() - hours);
+      
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE completed_at IS NOT NULL 
+        AND completed_at >= ?
+        ORDER BY completed_at DESC
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(dateThreshold.toISOString())
+        .all<Task>();
+      
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting recently completed tasks:', error);
+      return [];
+    }
+  }
+
+  // Get tasks completed by manager in the last N hours
+  async getTasksCompletedByManagerInLastHours(managerId: string, hours: number = 24): Promise<Task[]> {
+    try {
+      const dateThreshold = new Date();
+      dateThreshold.setHours(dateThreshold.getHours() - hours);
+      
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE managerID = ?
+        AND completed_at IS NOT NULL 
+        AND completed_at >= ?
+        ORDER BY projectName ASC, completed_at DESC
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(managerId, dateThreshold.toISOString())
+        .all<Task>();
+      
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting manager recently completed tasks:', error);
+      return [];
+    }
+  }
+
+  // Get pending/waiting tasks by manager (not completed)
+  async getPendingTasksByManager(managerId: string): Promise<Task[]> {
+    try {
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE managerID = ?
+        AND completed_at IS NULL
+        AND status != 'completed'
+        ORDER BY projectName ASC, dueDate ASC, priority DESC
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(managerId)
+        .all<Task>();
+      
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting pending tasks by manager:', error);
+      return [];
+    }
+  }
+
+  // Get overdue tasks by manager
+  async getOverdueTasksByManager(managerId: string): Promise<Task[]> {
+    try {
+      const now = new Date().toISOString();
+      const query = `
+        SELECT * FROM ${this.tableName} 
+        WHERE managerID = ?
+        AND dueDate IS NOT NULL 
+        AND dueDate < ? 
+        AND status != 'completed' 
+        AND completed_at IS NULL
+        ORDER BY projectName ASC, dueDate ASC
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(managerId, now)
+        .all<Task>();
+      
+      return result.success ? result.results : [];
+    } catch (error) {
+      console.error('Error getting overdue tasks by manager:', error);
+      return [];
+    }
+  }
+
+  // Get unique projects for a manager
+  async getManagerProjects(managerId: string): Promise<string[]> {
+    try {
+      const query = `
+        SELECT DISTINCT projectName 
+        FROM ${this.tableName} 
+        WHERE managerID = ?
+        ORDER BY projectName ASC
+      `;
+      
+      const result = await this.db.prepare(query)
+        .bind(managerId)
+        .all<{ projectName: string }>();
+      
+      return result.success ? result.results.map(r => r.projectName) : [];
+    } catch (error) {
+      console.error('Error getting manager projects:', error);
+      return [];
+    }
+  }
+
   // Update task status
   async updateStatus(id: string, status: string): Promise<{ success: boolean; error?: string }> {
     try {
