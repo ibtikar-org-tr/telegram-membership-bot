@@ -261,13 +261,17 @@ export class TaskCrud extends BaseCrud<Task> {
   // Update task status
   async updateStatus(id: string, status: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // Get existing task to preserve completed_at if already set
+      const existingTask = await this.getById(id);
+      
       const updateData: any = { 
         status, 
         updated_at: new Date()
       };
 
       if (status === 'completed') {
-        updateData.completed_at = new Date();
+        // Only set completed_at if it wasn't already set
+        updateData.completed_at = existingTask?.completed_at || new Date();
       }
 
       return await this.update(id, updateData);
@@ -279,8 +283,12 @@ export class TaskCrud extends BaseCrud<Task> {
   // Mark task as blocked
   async blockTask(id: string, reason?: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // Get existing task to preserve blocked_at if already set
+      const existingTask = await this.getById(id);
+      
       const updateData: any = {
-        blocked_at: new Date(),
+        // Only set blocked_at if it wasn't already set
+        blocked_at: existingTask?.blocked_at || new Date(),
         updated_at: new Date()
       };
 

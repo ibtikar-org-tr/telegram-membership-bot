@@ -514,17 +514,28 @@ export class TaskService {
               send = false;
             }
 
+            // Check if task exists (we need to check this BEFORE setting completed_at/blocked_at)
+            const existingTask = await this.searchTask(sheetId, projectName, rowNumber);
+
             // Handle completed/blocked tasks
+            // Only set completed_at/blocked_at if task wasn't already completed/blocked
             if (taskObj.status.toLowerCase() === 'completed') {
-              taskObj.completed_at = new Date();
+              // Preserve existing completed_at if task was already completed
+              if (existingTask?.completed_at) {
+                taskObj.completed_at = existingTask.completed_at;
+              } else {
+                taskObj.completed_at = new Date();
+              }
               send = false;
             } else if (taskObj.status.toLowerCase() === 'blocked') {
-              taskObj.blocked_at = new Date();
+              // Preserve existing blocked_at if task was already blocked
+              if (existingTask?.blocked_at) {
+                taskObj.blocked_at = existingTask.blocked_at;
+              } else {
+                taskObj.blocked_at = new Date();
+              }
               send = false;
             }
-
-            // Check if task exists
-            const existingTask = await this.searchTask(sheetId, projectName, rowNumber);
 
             // Check for missing data
             const hasMissingData = !taskObj.ownerName?.trim() || 
@@ -601,6 +612,11 @@ export class TaskService {
               }
               if (!taskObj.last_reported && existingTask.last_reported) {
                 taskObj.last_reported = existingTask.last_reported;
+              }
+
+              // CRITICAL: Preserve created_at from existing task to prevent it from being reset
+              if (existingTask.created_at) {
+                taskObj.created_at = existingTask.created_at;
               }
 
               // Only update if there are actual changes (saves database write operations)

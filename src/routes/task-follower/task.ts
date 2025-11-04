@@ -213,16 +213,29 @@ taskRoutes.patch('/:id/status', async (c) => {
     }
     
     const db = new D1DatabaseConnection(c.env.DB);
+    
+    // Get existing task to check current status and timestamps
+    const existingTask = await taskService.getTaskById(taskId);
+    if (!existingTask) {
+      return c.json({ success: false, error: 'Task not found' }, 404);
+    }
+    
     const updateData: any = { 
       status, 
       updated_at: new Date().toISOString()
     };
 
-    // Set completion or block timestamps
+    // Set completion or block timestamps only if not already set
     if (status === 'completed') {
-      updateData.completed_at = new Date().toISOString();
+      // Preserve existing completed_at if already set
+      updateData.completed_at = existingTask.completed_at 
+        ? new Date(existingTask.completed_at).toISOString()
+        : new Date().toISOString();
     } else if (status === 'blocked') {
-      updateData.blocked_at = new Date().toISOString();
+      // Preserve existing blocked_at if already set
+      updateData.blocked_at = existingTask.blocked_at
+        ? new Date(existingTask.blocked_at).toISOString()
+        : new Date().toISOString();
     }
 
     const result = await db.prepare(
