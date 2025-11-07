@@ -284,7 +284,7 @@ export default {
   async scheduled(event: ScheduledEvent, env: Environment, ctx: ExecutionContext): Promise<void> {
     // Handle different cron schedules
     switch (event.cron) {
-      case '*/5 8-21 * * *': // Every 5 minutes during work hours (8 AM - 9 PM)
+      case '*/5 5-18 * * *': // Every 5 minutes during work hours (8 AM - 9 PM converted from UTC to GMT+3)
         // Get current hour in UTC+3 (Turkey/Istanbul timezone)
         const now = new Date();
         const istanbulTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
