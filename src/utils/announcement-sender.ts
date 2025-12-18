@@ -283,16 +283,70 @@ export const html = `<!DOCTYPE html>
         .preview h3 {
             margin-bottom: 15px;
             color: #333;
+            font-size: 16px;
         }
         
         .preview-content {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
+            background: #dcf8c6;
+            padding: 15px 18px;
+            border-radius: 12px;
             min-height: 100px;
             white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #000;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+            position: relative;
+        }
+        
+        .preview-content.empty {
+            background: #f0f0f0;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .preview-content strong {
+            font-weight: 700;
+        }
+        
+        .preview-content em {
+            font-style: italic;
+        }
+        
+        .preview-content code {
+            font-family: 'Courier New', Consolas, monospace;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        .preview-content pre {
+            font-family: 'Courier New', Consolas, monospace;
+            background: rgba(0,0,0,0.05);
+            padding: 8px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 5px 0;
+        }
+        
+        .preview-content a {
+            color: #2481cc;
+            text-decoration: none;
+        }
+        
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .preview-content u {
+            text-decoration: underline;
+        }
+        
+        .preview-content s {
+            text-decoration: line-through;
         }
         
         .character-count {
@@ -403,7 +457,7 @@ export const html = `<!DOCTYPE html>
                         </div>
 
                         <div class="btn-group">
-                            <button type="button" class="btn-secondary" onclick="document.getElementById('announcementForm').reset(); document.getElementById('result').style.display='none'; document.getElementById('charCount').textContent='0'; document.getElementById('previewContent').textContent='Your message preview will appear here...'; document.getElementById('filePreview').style.display='none';">
+                            <button type="button" class="btn-secondary" id="resetBtn">
                                 🔄 Reset
                             </button>
                             <button type="submit" class="btn-primary" id="submitBtn">
@@ -438,15 +492,82 @@ export const html = `<!DOCTYPE html>
         // Get API URL from current location
         const apiUrl = window.location.origin + '/api/announcement';
 
-        // Character counter
+        // Function to parse Telegram formatting
+        function parseMarkdown(text, parseMode) {
+            if (!text) {
+                previewContent.classList.add('empty');
+                return 'Your message preview will appear here...';
+            }
+            
+            previewContent.classList.remove('empty');
+            
+            // Escape HTML first
+            let html = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            if (parseMode === 'HTML') {
+                // For HTML mode, just return as-is (already escaped)
+                return text;
+            } else if (parseMode === 'MarkdownV2' || parseMode === 'Markdown') {
+                // MarkdownV2 formatting
+                // Bold: *text* or **text**
+                html = html.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
+                html = html.replace(/\\*([^*]+?)\\*/g, '<strong>$1</strong>');
+                
+                // Italic: _text_ or __text__
+                html = html.replace(/__(.+?)__/g, '<em>$1</em>');
+                html = html.replace(/_([^_]+?)_/g, '<em>$1</em>');
+                
+                // Underline: (MarkdownV2 only)
+                html = html.replace(/<u>(.+?)<\\/u>/g, '<u>$1</u>');
+                
+                // Strikethrough: ~text~ or ~~text~~
+                html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
+                html = html.replace(/~([^~]+?)~/g, '<s>$1</s>');
+                
+                // Code: \\\`text\\\`
+                html = html.replace(/\\\`([^\\\`]+?)\\\`/g, '<code>$1</code>');
+                
+                // Pre (code blocks): \\\`\\\`\\\`text\\\`\\\`\\\`
+                html = html.replace(/\\\`\\\`\\\`([\\\\s\\\\S]+?)\\\`\\\`\\\`/g, '<pre>$1</pre>');
+                
+                // Links: [text](url)
+                html = html.replace(/\\[([^\\]]+?)\\]\\(([^)]+?)\\)/g, '<a href="$2" target="_blank">$1</a>');
+                
+                return html;
+            } else {
+                // Plain text - preserve line breaks
+                return html;
+            }
+        }
+
+        // Character counter and preview update
         const messageInput = document.getElementById('message');
         const charCount = document.getElementById('charCount');
         const previewContent = document.getElementById('previewContent');
+        const parseModeSelect = document.getElementById('parseMode');
         
-        messageInput.addEventListener('input', () => {
+        function updatePreview() {
             const count = messageInput.value.length;
+            const parseMode = parseModeSelect.value;
             charCount.textContent = count;
-            previewContent.textContent = messageInput.value || 'Your message preview will appear here...';
+            previewContent.innerHTML = parseMarkdown(messageInput.value, parseMode);
+        }
+        
+        messageInput.addEventListener('input', updatePreview);
+        parseModeSelect.addEventListener('change', updatePreview);
+        
+        // Initial preview render
+        updatePreview();
+        
+        // Reset button handler
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('announcementForm').reset();
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('filePreview').style.display = 'none';
+            updatePreview();
         });
 
         // Attachment type handling
