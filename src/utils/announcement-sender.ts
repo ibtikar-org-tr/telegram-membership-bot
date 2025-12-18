@@ -216,6 +216,28 @@ export const html = `<!DOCTYPE html>
             cursor: not-allowed;
         }
         
+        .format-btn {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-width: 40px;
+        }
+        
+        .format-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .format-btn:active {
+            transform: scale(0.95);
+        }
+        
         .result {
             margin-top: 30px;
             padding: 20px;
@@ -410,6 +432,14 @@ export const html = `<!DOCTYPE html>
 
                         <div class="form-group">
                             <label for="message">✉️ Message / Caption</label>
+                            <div style="margin-bottom: 8px; display: flex; gap: 8px;">
+                                <button type="button" class="format-btn" id="boldBtn" title="Bold (Ctrl+B)">
+                                    <strong>B</strong>
+                                </button>
+                                <button type="button" class="format-btn" id="italicBtn" title="Italic (Ctrl+I)">
+                                    <em>I</em>
+                                </button>
+                            </div>
                             <textarea id="message" placeholder="Enter your announcement message..." required></textarea>
                             <div class="character-count">
                                 <span id="charCount">0</span> characters
@@ -420,7 +450,7 @@ export const html = `<!DOCTYPE html>
                             <label for="parseMode">📝 Parse Mode</label>
                             <select id="parseMode">
                                 <option value="">None (Plain Text)</option>
-                                <option value="MarkdownV2">MarkdownV2</option>
+                                <option value="MarkdownV2" selected>MarkdownV2</option>
                                 <option value="HTML">HTML</option>
                                 <option value="Markdown">Markdown</option>
                             </select>
@@ -561,6 +591,56 @@ export const html = `<!DOCTYPE html>
         
         // Initial preview render
         updatePreview();
+        
+        // Format buttons
+        const boldBtn = document.getElementById('boldBtn');
+        const italicBtn = document.getElementById('italicBtn');
+        
+        function wrapSelectedText(before, after) {
+            const start = messageInput.selectionStart;
+            const end = messageInput.selectionEnd;
+            const selectedText = messageInput.value.substring(start, end);
+            
+            if (selectedText) {
+                const newText = messageInput.value.substring(0, start) + 
+                               before + selectedText + after + 
+                               messageInput.value.substring(end);
+                messageInput.value = newText;
+                messageInput.focus();
+                messageInput.setSelectionRange(start + before.length, end + before.length);
+                updatePreview();
+            } else {
+                // If no text selected, insert markers and place cursor between them
+                const newText = messageInput.value.substring(0, start) + 
+                               before + after + 
+                               messageInput.value.substring(start);
+                messageInput.value = newText;
+                messageInput.focus();
+                messageInput.setSelectionRange(start + before.length, start + before.length);
+                updatePreview();
+            }
+        }
+        
+        boldBtn.addEventListener('click', () => {
+            wrapSelectedText('*', '*');
+        });
+        
+        italicBtn.addEventListener('click', () => {
+            wrapSelectedText('_', '_');
+        });
+        
+        // Keyboard shortcuts
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'b' || e.key === 'B') {
+                    e.preventDefault();
+                    wrapSelectedText('*', '*');
+                } else if (e.key === 'i' || e.key === 'I') {
+                    e.preventDefault();
+                    wrapSelectedText('_', '_');
+                }
+            }
+        });
         
         // Reset button handler
         document.getElementById('resetBtn').addEventListener('click', () => {
