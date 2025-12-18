@@ -153,4 +153,49 @@ api.post('/webhook/setup', async (c) => {
   }
 });
 
+api.post('/announcement', async (c) => {
+  try {
+    const { message, parse_mode } = await c.req.json();
+    
+    if (!message) {
+      return c.json({ error: 'Message is required' }, 400);
+    }
+
+    const telegramService = new TelegramService(c.env);
+    const memberSheetServices = new MemberSheetServices(c.env);
+
+    // Fetch all members from Google Sheet
+    const members = await memberSheetServices.getMembers();
+    
+    // Filter members who have telegram_id
+    const membersWithTelegram = members.filter(member => member.telegram_id && member.telegram_id.trim() !== '');
+    
+    if (membersWithTelegram.length === 0) {
+      return c.json({ 
+        error: 'No members with Telegram IDs found in the sheet' 
+      }, 404);
+    }
+
+    // Extract telegram IDs
+    const telegramIds = membersWithTelegram.map(member => member.telegram_id);
+
+    // Send announcement to all members
+    await telegramService.sendBulkMessage(telegramIds, message, parse_mode);
+    
+    return c.json({ 
+      success: true, 
+      message: `Announcement sent successfully`,
+      total_members: members.length,
+      members_with_telegram: membersWithTelegram.length,
+      members_notified: telegramIds.length
+    });
+  } catch (error) {
+    console.error('Announcement error:', error);
+    return c.json({ 
+      error: 'Failed to send announcement',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
 export default api;
