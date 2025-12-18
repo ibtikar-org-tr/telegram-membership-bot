@@ -25,7 +25,7 @@ export const html = `<!DOCTYPE html>
         }
         
         .main-container {
-            max-width: 900px;
+            max-width: 1400px;
             width: 100%;
         }
         
@@ -54,47 +54,21 @@ export const html = `<!DOCTYPE html>
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
         }
         
-        .tab {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
+        .form-section {
+            min-width: 0;
         }
         
-        .tab:hover {
-            color: #667eea;
+        .preview-section {
+            min-width: 0;
         }
         
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+
         
         .info {
             background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
@@ -328,41 +302,16 @@ export const html = `<!DOCTYPE html>
             margin-top: 5px;
         }
         
-        .history-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-        }
+
         
-        .history-item .time {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 8px;
-        }
-        
-        .history-item .message {
-            color: #333;
-            margin-bottom: 8px;
-        }
-        
-        .history-item .stats-inline {
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.3;
+        @media (max-width: 1024px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-section {
+                order: -1;
+            }
         }
         
         @media (max-width: 768px) {
@@ -376,10 +325,6 @@ export const html = `<!DOCTYPE html>
             
             .header h1 {
                 font-size: 1.8rem;
-            }
-            
-            .tabs {
-                overflow-x: auto;
             }
             
             .btn-group {
@@ -396,147 +341,102 @@ export const html = `<!DOCTYPE html>
         </div>
         
         <div class="container">
-            <div class="tabs">
-                <button class="tab active" data-tab="send">📤 Send</button>
-                <button class="tab" data-tab="preview">👁️ Preview</button>
-                <button class="tab" data-tab="history">📋 History</button>
+            <div class="info">
+                <strong>ℹ️ How it works:</strong> This tool sends announcements to all members in the Google Members Sheet who have registered their Telegram IDs. Messages are sent asynchronously to ensure delivery even if some fail.
             </div>
 
-            <!-- Send Tab -->
-            <div class="tab-content active" id="send-tab">
-                <div class="info">
-                    <strong>ℹ️ How it works:</strong> This tool sends announcements to all members in the Google Members Sheet who have registered their Telegram IDs. Messages are sent asynchronously to ensure delivery even if some fail.
+            <div class="content-wrapper">
+                <!-- Form Section (Left) -->
+                <div class="form-section">
+                    <form id="announcementForm">
+                        <div class="form-group">
+                            <label for="apiKey">🔑 API Key</label>
+                            <input type="password" id="apiKey" placeholder="Enter your API key" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">✉️ Message / Caption</label>
+                            <textarea id="message" placeholder="Enter your announcement message..." required></textarea>
+                            <div class="character-count">
+                                <span id="charCount">0</span> characters
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="parseMode">📝 Parse Mode</label>
+                            <select id="parseMode">
+                                <option value="">None (Plain Text)</option>
+                                <option value="MarkdownV2">MarkdownV2</option>
+                                <option value="HTML">HTML</option>
+                                <option value="Markdown">Markdown</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📎 Attachment Type</label>
+                            <div class="attachment-type">
+                                <label class="radio-label">
+                                    <input type="radio" name="attachmentType" value="none" checked>
+                                    <span>📄 Text Only</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="attachmentType" value="photo">
+                                    <span>🖼️ Photo</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="attachmentType" value="document">
+                                    <span>📁 Document</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="photoGroup" style="display: none;">
+                            <label for="photo">📷 Select Photo</label>
+                            <input type="file" id="photo" accept="image/*">
+                            <div class="file-info">Supported: JPEG, PNG, GIF, etc. Max size: 10 MB</div>
+                        </div>
+
+                        <div class="form-group" id="documentGroup" style="display: none;">
+                            <label for="document">📄 Select Document</label>
+                            <input type="file" id="document">
+                            <div class="file-info">Supported: PDF, DOC, DOCX, ZIP, TXT, etc. Max size: 50 MB</div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('announcementForm').reset(); document.getElementById('result').style.display='none'; document.getElementById('charCount').textContent='0'; document.getElementById('previewContent').textContent='Your message preview will appear here...'; document.getElementById('filePreview').style.display='none';">
+                                🔄 Reset
+                            </button>
+                            <button type="submit" class="btn-primary" id="submitBtn">
+                                📤 Send Announcement
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="result" class="result"></div>
                 </div>
 
-                <form id="announcementForm">
-                    <div class="form-group">
-                        <label for="apiUrl">🌐 API URL</label>
-                        <input type="text" id="apiUrl" value="" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="apiKey">🔑 API Key</label>
-                        <input type="password" id="apiKey" placeholder="Enter your API key" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="message">✉️ Message / Caption</label>
-                        <textarea id="message" placeholder="Enter your announcement message..." required></textarea>
-                        <div class="character-count">
-                            <span id="charCount">0</span> characters
+                <!-- Preview Section (Right) -->
+                <div class="preview-section">
+                    <div class="preview">
+                        <h3>👁️ Message Preview</h3>
+                        <div class="preview-content" id="previewContent">
+                            Your message preview will appear here...
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="parseMode">📝 Parse Mode</label>
-                        <select id="parseMode">
-                            <option value="">None (Plain Text)</option>
-                            <option value="MarkdownV2">MarkdownV2</option>
-                            <option value="HTML">HTML</option>
-                            <option value="Markdown">Markdown</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>📎 Attachment Type</label>
-                        <div class="attachment-type">
-                            <label class="radio-label">
-                                <input type="radio" name="attachmentType" value="none" checked>
-                                <span>📄 Text Only</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="attachmentType" value="photo">
-                                <span>🖼️ Photo</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="attachmentType" value="document">
-                                <span>📁 Document</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="photoGroup" style="display: none;">
-                        <label for="photo">📷 Select Photo</label>
-                        <input type="file" id="photo" accept="image/*">
-                        <div class="file-info">Supported: JPEG, PNG, GIF, etc. Max size: 10 MB</div>
-                    </div>
-
-                    <div class="form-group" id="documentGroup" style="display: none;">
-                        <label for="document">📄 Select Document</label>
-                        <input type="file" id="document">
-                        <div class="file-info">Supported: PDF, DOC, DOCX, ZIP, TXT, etc. Max size: 50 MB</div>
-                    </div>
-
-                    <div class="btn-group">
-                        <button type="button" class="btn-secondary" onclick="document.getElementById('announcementForm').reset(); document.getElementById('result').style.display='none';">
-                            🔄 Reset
-                        </button>
-                        <button type="submit" class="btn-primary" id="submitBtn">
-                            📤 Send Announcement
-                        </button>
-                    </div>
-                </form>
-
-                <div id="result" class="result"></div>
-            </div>
-
-            <!-- Preview Tab -->
-            <div class="tab-content" id="preview-tab">
-                <div class="info">
-                    <strong>👁️ Message Preview:</strong> See how your message will appear before sending.
-                </div>
-                
-                <div class="preview">
-                    <h3>Message Content</h3>
-                    <div class="preview-content" id="previewContent">
-                        Your message preview will appear here...
-                    </div>
-                </div>
-                
-                <div class="preview" id="filePreview" style="display: none;">
-                    <h3>Attachment Preview</h3>
-                    <div id="filePreviewContent"></div>
-                </div>
-            </div>
-
-            <!-- History Tab -->
-            <div class="tab-content" id="history-tab">
-                <div class="info">
-                    <strong>📋 Sending History:</strong> View your recent announcements sent during this session.
-                </div>
-                
-                <div id="historyList">
-                    <div class="empty-state">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p>No announcements sent yet</p>
+                    
+                    <div class="preview" id="filePreview" style="display: none;">
+                        <h3>📎 Attachment Preview</h3>
+                        <div id="filePreviewContent"></div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
     <script>
-        // Auto-fill API URL based on current location
-        (function() {
-            const apiUrlInput = document.getElementById('apiUrl');
-            const currentUrl = window.location.origin;
-            apiUrlInput.value = currentUrl + '/api/announcement';
-        })();
-
-        // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
-                
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(tabName + '-tab').classList.add('active');
-            });
-        });
+        // Get API URL from current location
+        const apiUrl = window.location.origin + '/api/announcement';
 
         // Character counter
         const messageInput = document.getElementById('message');
@@ -593,37 +493,6 @@ export const html = `<!DOCTYPE html>
             }
         });
 
-        // History management
-        let history = JSON.parse(localStorage.getItem('announcementHistory') || '[]');
-        
-        function updateHistory() {
-            const historyList = document.getElementById('historyList');
-            
-            if (history.length === 0) {
-                historyList.innerHTML = \`
-                    <div class="empty-state">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p>No announcements sent yet</p>
-                    </div>
-                \`;
-            } else {
-                historyList.innerHTML = history.map(item => \`
-                    <div class="history-item">
-                        <div class="time">⏰ \${item.time}</div>
-                        <div class="message">\${item.message.substring(0, 100)}\${item.message.length > 100 ? '...' : ''}</div>
-                        <div class="stats-inline">
-                            👥 \${item.members_notified} members notified | 
-                            📎 \${item.attachment_type}
-                        </div>
-                    </div>
-                \`).join('');
-            }
-        }
-        
-        updateHistory();
-
         // Form submission
         const form = document.getElementById('announcementForm');
         const resultDiv = document.getElementById('result');
@@ -631,8 +500,6 @@ export const html = `<!DOCTYPE html>
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const apiUrl = document.getElementById('apiUrl').value;
             const apiKey = document.getElementById('apiKey').value;
             const message = document.getElementById('message').value;
             const parseMode = document.getElementById('parseMode').value;
@@ -705,17 +572,6 @@ export const html = `<!DOCTYPE html>
                             </div>
                         </div>
                     \`;
-                    
-                    // Add to history
-                    history.unshift({
-                        time: new Date().toLocaleString(),
-                        message: message,
-                        members_notified: data.members_notified,
-                        attachment_type: data.attachment_type
-                    });
-                    history = history.slice(0, 10); // Keep only last 10
-                    localStorage.setItem('announcementHistory', JSON.stringify(history));
-                    updateHistory();
                 } else {
                     resultDiv.className = 'result error';
                     resultDiv.innerHTML = \`
