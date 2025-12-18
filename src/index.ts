@@ -6,6 +6,7 @@ import apiRoutes from './routes/api';
 import testingRoutes from './routes/testing';
 import { taskRoutes } from './routes/task-follower/task';
 import { taskSheetRoutes } from './routes/task-follower/sheet';
+import uiRoutes from './routes/ui';
 import groupsRouter from './routes/groups';
 
 const app = new Hono<{ Bindings: Environment }>();
@@ -18,7 +19,7 @@ app.get('/', (c) => {
   return c.json({ 
     status: 'ok', 
     message: 'Telegram Membership Bot API with Task Management',
-    version: '1.1.0',
+    version: '1.2.0',
     features: [
       'Telegram Bot Integration',
       'Membership Management from Member Google Sheets',
@@ -43,10 +44,14 @@ app.route('/api/task-sheets', taskSheetRoutes);
 // Groups routes
 app.route('/api/groups', groupsRouter);
 
+// UI routes
+app.route('/ui', uiRoutes);
+
 // 404 handler ----------------------
 app.notFound((c) => {
   return c.json({ error: 'Not found' }, 404);
 });
+
 
 // Error handler
 app.onError((err, c) => {
