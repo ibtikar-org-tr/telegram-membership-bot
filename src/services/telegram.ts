@@ -161,10 +161,67 @@ export class TelegramService {
     }
   }
 
+  async sendDocument(chatId: number | string, document: string | Blob, caption?: string, parseMode?: string, filename?: string): Promise<void> {
+    const url = `https://api.telegram.org/bot${this.botToken}/sendDocument`;
+
+    console.log('Sending document to', chatId, 'with caption:', caption);
+    
+    const form = new FormData();
+    form.append('chat_id', chatId.toString());
+    
+    if (typeof document === 'string') {
+      // Document is a URL or file_id
+      form.append('document', document);
+    } else {
+      // Document is a Blob/File
+      form.append('document', document, filename || 'document');
+    }
+
+    if (caption) {
+      form.append('caption', caption);
+      if (!parseMode) {
+        parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+      }
+      form.append('parse_mode', parseMode);
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Telegram API error: ${response.status} ${error}`);
+    }
+  }
+
   async sendBulkMessage(chatIds: (number | string)[], text: string, parseMode?: string): Promise<void> {
     const promises = chatIds.map(chatId => 
       this.sendMessage(chatId, text, parseMode).catch(error => {
         console.error(`Failed to send message to ${chatId}:`, error);
+        return error;
+      })
+    );
+
+    await Promise.allSettled(promises);
+  }
+
+  async sendBulkPhoto(chatIds: (number | string)[], photo: string | Blob, caption?: string, parseMode?: string): Promise<void> {
+    const promises = chatIds.map(chatId => 
+      this.sendPhoto(chatId, photo, caption, parseMode).catch(error => {
+        console.error(`Failed to send photo to ${chatId}:`, error);
+        return error;
+      })
+    );
+
+    await Promise.allSettled(promises);
+  }
+
+  async sendBulkDocument(chatIds: (number | string)[], document: string | Blob, caption?: string, parseMode?: string, filename?: string): Promise<void> {
+    const promises = chatIds.map(chatId => 
+      this.sendDocument(chatId, document, caption, parseMode, filename).catch(error => {
+        console.error(`Failed to send document to ${chatId}:`, error);
         return error;
       })
     );

@@ -155,10 +155,51 @@ api.post('/webhook/setup', async (c) => {
 
 api.post('/announcement', async (c) => {
   try {
-    const { message, parse_mode } = await c.req.json();
+    let message: string;
+    let parse_mode: string | undefined;
+    let photo: Blob | undefined;
+    let document: Blob | undefined;
+    let filename: string | undefined;
+
+    const contentType = c.req.header('Content-Type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle multipart form data (for file/photo uploads)
+      const formData = await c.req.formData();
+      
+      message = formData.get('message') as string;
+      parse_mode = (formData.get('parse_mode') as string) || undefined;
+      
+      // Handle photo upload
+      const photoFile = formData.get('photo') as File;
+      if (photoFile && photoFile.size > 0) {
+        const arrayBuffer = await photoFile.arrayBuffer();
+        photo = new Blob([arrayBuffer], { type: photoFile.type || 'image/jpeg' });
+      }
+
+      // Handle document/file upload
+      const documentFile = formData.get('document') as File;
+      if (documentFile && documentFile.size > 0) {
+        const arrayBuffer = await documentFile.arrayBuffer();
+        document = new Blob([arrayBuffer], { type: documentFile.type || 'application/octet-stream' });
+        filename = documentFile.name || 'document';
+      }
+    } else {
+      // Handle JSON data (text-only announcements)
+      const jsonData = await c.req.json();
+      message = jsonData.message;
+      parse_mode = jsonData.parse_mode;
+    }
     
     if (!message) {
       return c.json({ error: 'Message is required' }, 400);
+    }
+
+    // Check that only one attachment type is provided
+    if (photo && document) {
+      return c.json({ 
+        error: 'Cannot send both photo and document. Please send only one attachment type.' 
+      }, 400);
     }
 
     const telegramService = new TelegramService(c.env);
@@ -179,15 +220,25 @@ api.post('/announcement', async (c) => {
     // Extract telegram IDs
     const telegramIds = membersWithTelegram.map(member => member.telegram_id);
 
-    // Send announcement to all members
-    await telegramService.sendBulkMessage(telegramIds, message, parse_mode);
+    // Send announcement based on attachment type
+    if (photo) {
+      // Send as photo with caption
+      await telegramService.sendBulkPhoto(telegramIds, photo, message, parse_mode);
+    } else if (document) {
+      // Send as document with caption
+      await telegramService.sendBulkDocument(telegramIds, document, message, parse_mode, filename);
+    } else {
+      // Send as text message
+      await telegramService.sendBulkMessage(telegramIds, message, parse_mode);
+    }
     
     return c.json({ 
       success: true, 
       message: `Announcement sent successfully`,
       total_members: members.length,
       members_with_telegram: membersWithTelegram.length,
-      members_notified: telegramIds.length
+      members_notified: telegramIds.length,
+      attachment_type: photo ? 'photo' : document ? 'document' : 'text'
     });
   } catch (error) {
     console.error('Announcement error:', error);
