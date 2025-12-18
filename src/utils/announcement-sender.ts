@@ -120,6 +120,18 @@ export const html = `<!DOCTYPE html>
             min-height: 150px;
             resize: vertical;
             font-family: inherit;
+            direction: auto;
+            text-align: start;
+        }
+        
+        textarea[dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+        }
+        
+        textarea[dir="ltr"] {
+            direction: ltr;
+            text-align: left;
         }
         
         input[type="file"] {
@@ -321,6 +333,8 @@ export const html = `<!DOCTYPE html>
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             word-wrap: break-word;
             position: relative;
+            direction: auto;
+            text-align: start;
         }
         
         .preview-content.empty {
@@ -432,15 +446,25 @@ export const html = `<!DOCTYPE html>
 
                         <div class="form-group">
                             <label for="message">✉️ Message / Caption</label>
-                            <div style="margin-bottom: 8px; display: flex; gap: 8px;">
-                                <button type="button" class="format-btn" id="boldBtn" title="Bold (Ctrl+B)">
-                                    <strong>B</strong>
-                                </button>
-                                <button type="button" class="format-btn" id="italicBtn" title="Italic (Ctrl+I)">
-                                    <em>I</em>
-                                </button>
+                            <div style="margin-bottom: 8px; display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="format-btn" id="boldBtn" title="Bold (Ctrl+B)">
+                                        <strong>B</strong>
+                                    </button>
+                                    <button type="button" class="format-btn" id="italicBtn" title="Italic (Ctrl+I)">
+                                        <em>I</em>
+                                    </button>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="format-btn" id="rtlBtn" title="Right-to-Left">
+                                        RTL
+                                    </button>
+                                    <button type="button" class="format-btn" id="ltrBtn" title="Left-to-Right">
+                                        LTR
+                                    </button>
+                                </div>
                             </div>
-                            <textarea id="message" placeholder="Enter your announcement message..." required></textarea>
+                            <textarea id="message" placeholder="Enter your announcement message..." required dir="auto"></textarea>
                             <div class="character-count">
                                 <span id="charCount">0</span> characters
                             </div>
@@ -638,6 +662,39 @@ export const html = `<!DOCTYPE html>
                 } else if (e.key === 'i' || e.key === 'I') {
                     e.preventDefault();
                     wrapSelectedText('_', '_');
+                }
+            }
+        });
+        
+        // RTL/LTR toggle buttons
+        const rtlBtn = document.getElementById('rtlBtn');
+        const ltrBtn = document.getElementById('ltrBtn');
+        
+        rtlBtn.addEventListener('click', () => {
+            messageInput.setAttribute('dir', 'rtl');
+            messageInput.focus();
+        });
+        
+        ltrBtn.addEventListener('click', () => {
+            messageInput.setAttribute('dir', 'ltr');
+            messageInput.focus();
+        });
+        
+        // Auto-detect text direction on input
+        messageInput.addEventListener('input', () => {
+            if (messageInput.getAttribute('dir') === 'auto') {
+                const text = messageInput.value.trim();
+                if (text.length > 0) {
+                    // Check if first character is RTL (Arabic, Hebrew, etc.)
+                    const firstChar = text.charAt(0);
+                    const rtlPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+                    if (rtlPattern.test(firstChar)) {
+                        previewContent.style.direction = 'rtl';
+                        previewContent.style.textAlign = 'right';
+                    } else {
+                        previewContent.style.direction = 'ltr';
+                        previewContent.style.textAlign = 'left';
+                    }
                 }
             }
         });
