@@ -161,7 +161,7 @@ export class TelegramService {
     }
   }
 
-  async sendDocument(chatId: number | string, document: string | Blob, caption?: string, parseMode?: string, filename?: string): Promise<void> {
+  async sendDocument(chatId: number | string, document: string | Blob | File, caption?: string, parseMode?: string, filename?: string): Promise<void> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendDocument`;
 
     console.log('Sending document to', chatId, 'with caption:', caption);
@@ -172,8 +172,11 @@ export class TelegramService {
     if (typeof document === 'string') {
       // Document is a URL or file_id
       form.append('document', document);
+    } else if (document instanceof File) {
+      // Document is a File object - use it directly with its original name
+      form.append('document', document, document.name || filename || 'document');
     } else {
-      // Document is a Blob/File
+      // Document is a Blob
       form.append('document', document, filename || 'document');
     }
 
@@ -218,7 +221,7 @@ export class TelegramService {
     await Promise.allSettled(promises);
   }
 
-  async sendBulkDocument(chatIds: (number | string)[], document: string | Blob, caption?: string, parseMode?: string, filename?: string): Promise<void> {
+  async sendBulkDocument(chatIds: (number | string)[], document: string | Blob | File, caption?: string, parseMode?: string, filename?: string): Promise<void> {
     const promises = chatIds.map(chatId => 
       this.sendDocument(chatId, document, caption, parseMode, filename).catch(error => {
         console.error(`Failed to send document to ${chatId}:`, error);

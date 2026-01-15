@@ -180,8 +180,8 @@ api.post('/announcement', async (c) => {
       // Handle document/file upload
       const documentFile = formData.get('document') as File;
       if (documentFile && documentFile.size > 0) {
-        const arrayBuffer = await documentFile.arrayBuffer();
-        document = new Blob([arrayBuffer], { type: documentFile.type || 'application/octet-stream' });
+        // Pass File directly instead of converting to Blob to preserve proper encoding
+        document = documentFile;
         filename = documentFile.name || 'document';
       }
     } else {
