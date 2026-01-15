@@ -1,6 +1,27 @@
 import { Environment, TelegramUpdate, SendMessageRequest, SendPhotoRequest, InlineKeyboardButton, InlineKeyboardMarkup } from '../types';
 // import { escapeMarkdownV2 } from '../utils/helpers';
 
+// MarkdownV2 special characters that need escaping
+const MARKDOWN_V2_RESERVED_CHARS = /[.!(){}[\]#+\-=|~`>\\]/g;
+
+/**
+ * Escape text for MarkdownV2 format - escapes ALL reserved characters
+ * In MarkdownV2, these characters must be escaped: . ! - ( ) [ ] { } # + = | ~ ` >
+ */
+function escapeMarkdownV2(text: string): string {
+  return text.replace(MARKDOWN_V2_RESERVED_CHARS, '\\$&');
+}
+
+/**
+ * Smart escape for MarkdownV2 - escapes reserved chars but preserves formatting syntax
+ * Allows basic *bold* and _italic_ formatting while escaping problematic characters
+ */
+function smartEscapeMarkdownV2(text: string): string {
+  // Simply escape all reserved characters
+  // The formatting with *text* and _text_ will still work because * and _ are NOT in MARKDOWN_V2_RESERVED_CHARS
+  return text.replace(MARKDOWN_V2_RESERVED_CHARS, '\\$&');
+}
+
 export class TelegramService {
   private env: Environment;
   private botToken: string;
@@ -37,12 +58,21 @@ export class TelegramService {
 
     console.log(`📤 Sending message to chat ${chatId}`);
     console.log(`   - Text: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
-    console.log(`   - Parse mode: ${parseMode || 'default'}`);
+    console.log(`   - Parse mode: ${parseMode || 'MarkdownV2 (with auto-escape)'}`);
     console.log(`   - Bot token (first 10 chars): ${this.botToken.substring(0, 10)}...`);
+    
     let compatibleText = text;
+    // Always use MarkdownV2 by default, with smart escaping
     if (!parseMode) {
-      parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
-      // compatibleText = escapeMarkdownV2(text); Not a good idea, at least for now
+      parseMode = 'MarkdownV2';
+      compatibleText = smartEscapeMarkdownV2(text);
+      console.log(`   - Smart-escaped for MarkdownV2 (preserves *bold* and _italic_)`);
+    } else if (parseMode === 'MarkdownV2') {
+      // Always escape when MarkdownV2 is used, regardless of whether explicit or default
+      compatibleText = smartEscapeMarkdownV2(text);
+      console.log(`   - Smart-escaped for MarkdownV2 (preserves *bold* and _italic_)`);
+    } else if (parseMode === 'HTML') {
+      console.log(`   - Using HTML format (<b>bold</b>, <i>italic</i>)`);
     }
   
     const payload: SendMessageRequest = {
@@ -106,16 +136,23 @@ export class TelegramService {
 
     console.log('Editing message', messageId, 'in chat', chatId);
     let compatibleText = text;
+    // Default to MarkdownV2 with smart escaping
     if (!parseMode) {
-      parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+      parseMode = 'MarkdownV2';
+      compatibleText = smartEscapeMarkdownV2(text);
+    } else if (parseMode === 'MarkdownV2') {
+      // Always escape when MarkdownV2 is used, regardless of whether explicit or default
+      compatibleText = smartEscapeMarkdownV2(text);
     }
   
     const payload: any = {
       chat_id: chatId,
       message_id: messageId,
       text: compatibleText,
-      parse_mode: parseMode,
     };
+    
+    // Always add parse_mode for consistency
+    payload.parse_mode = parseMode;
 
     if (inlineKeyboard && inlineKeyboard.length > 0) {
       payload.reply_markup = {
@@ -159,11 +196,19 @@ export class TelegramService {
     }
 
     if (caption) {
-      form.append('caption', caption);
+      let processedCaption = caption;
+      // Default to MarkdownV2 with smart escaping
       if (!parseMode) {
-        parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+        parseMode = 'MarkdownV2';
+        processedCaption = smartEscapeMarkdownV2(caption);
+      } else if (parseMode === 'MarkdownV2') {
+        // Always escape when MarkdownV2 is used, regardless of whether explicit or default
+        processedCaption = smartEscapeMarkdownV2(caption);
       }
-      form.append('parse_mode', parseMode);
+      form.append('caption', processedCaption);
+      if (parseMode) {
+        form.append('parse_mode', parseMode);
+      }
     }
 
     if (inlineKeyboard && inlineKeyboard.length > 0) {
@@ -203,11 +248,19 @@ export class TelegramService {
     }
 
     if (caption) {
-      form.append('caption', caption);
+      let processedCaption = caption;
+      // Default to MarkdownV2 with smart escaping
       if (!parseMode) {
-        parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
+        parseMode = 'MarkdownV2';
+        processedCaption = smartEscapeMarkdownV2(caption);
+      } else if (parseMode === 'MarkdownV2') {
+        // Always escape when MarkdownV2 is used, regardless of whether explicit or default
+        processedCaption = smartEscapeMarkdownV2(caption);
       }
-      form.append('parse_mode', parseMode);
+      form.append('caption', processedCaption);
+      if (parseMode) {
+        form.append('parse_mode', parseMode);
+      }
     }
 
     const response = await fetch(url, {
