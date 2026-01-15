@@ -8,6 +8,20 @@ export class TelegramService {
   constructor(env: Environment) {
     this.env = env;
     this.botToken = env.TELEGRAM_BOT_TOKEN;
+    
+    // Validate bot token
+    if (!this.botToken || this.botToken.length === 0) {
+      console.error('❌ TELEGRAM_BOT_TOKEN is not configured in environment variables');
+      throw new Error('TELEGRAM_BOT_TOKEN environment variable is required');
+    }
+    
+    // Warn if using placeholder token
+    if (this.botToken === 'your_secret_api_key_here' || this.botToken.includes('secret')) {
+      console.error('❌ TELEGRAM_BOT_TOKEN appears to be a placeholder. Please set the actual bot token in Cloudflare Workers Secrets');
+      throw new Error('TELEGRAM_BOT_TOKEN is not properly configured - appears to be a placeholder value');
+    }
+    
+    console.log('✅ TelegramService initialized with valid bot token');
   }
 
   async sendMessage(
@@ -21,7 +35,10 @@ export class TelegramService {
   ): Promise<number | undefined> {
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
 
-    console.log('Sending message to', chatId, 'with text:', text);
+    console.log(`📤 Sending message to chat ${chatId}`);
+    console.log(`   - Text: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
+    console.log(`   - Parse mode: ${parseMode || 'default'}`);
+    console.log(`   - Bot token (first 10 chars): ${this.botToken.substring(0, 10)}...`);
     let compatibleText = text;
     if (!parseMode) {
       parseMode = 'MarkdownV2'; // Default to MarkdownV2 if not specified
@@ -65,8 +82,13 @@ export class TelegramService {
 
     if (!response.ok) {
       const error = await response.text();
+      console.error(`❌ Telegram API error for chat ${chatId}: ${response.status}`);
+      console.error(`   URL: ${url}`);
+      console.error(`   Response: ${error}`);
+      console.error(`   Bot token valid: ${this.botToken && this.botToken.length > 0}`);
       throw new Error(`Telegram API error: ${response.status} ${error}`);
     }
+    console.log(`✅ Message sent to chat ${chatId}`);
 
     const result = await response.json() as { result?: { message_id?: number } };
     return result.result?.message_id;
@@ -200,36 +222,72 @@ export class TelegramService {
   }
 
   async sendBulkMessage(chatIds: (number | string)[], text: string, parseMode?: string): Promise<void> {
-    const promises = chatIds.map(chatId => 
-      this.sendMessage(chatId, text, parseMode).catch(error => {
-        console.error(`Failed to send message to ${chatId}:`, error);
-        return error;
-      })
+    console.log(`📧 Starting bulk message send to ${chatIds.length} recipients`);
+    console.log(`   - Bot token status: ${this.botToken ? 'Present' : 'MISSING'}`);
+    console.log(`   - Bot token length: ${this.botToken?.length || 0}`);
+    
+    const results = await Promise.allSettled(
+      chatIds.map(chatId => this.sendMessage(chatId, text, parseMode))
     );
 
-    await Promise.allSettled(promises);
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    if (failed > 0) {
+      console.warn(`⚠️ Some messages failed to send:`);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`   - Chat ${chatIds[index]}: ${result.reason}`);
+        }
+      });
+    }
+    
+    console.log(`📋 Bulk message send completed: ${successful}/${chatIds.length} successful, ${failed}/${chatIds.length} failed`);
   }
 
   async sendBulkPhoto(chatIds: (number | string)[], photo: string | Blob, caption?: string, parseMode?: string): Promise<void> {
-    const promises = chatIds.map(chatId => 
-      this.sendPhoto(chatId, photo, caption, parseMode).catch(error => {
-        console.error(`Failed to send photo to ${chatId}:`, error);
-        return error;
-      })
+    console.log(`📷 Starting bulk photo send to ${chatIds.length} recipients`);
+    
+    const results = await Promise.allSettled(
+      chatIds.map(chatId => this.sendPhoto(chatId, photo, caption, parseMode))
     );
 
-    await Promise.allSettled(promises);
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    if (failed > 0) {
+      console.warn(`⚠️ Some photos failed to send:`);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`   - Chat ${chatIds[index]}: ${result.reason}`);
+        }
+      });
+    }
+    
+    console.log(`✅ Bulk photo send completed: ${successful} successful, ${failed} failed out of ${chatIds.length}`);
   }
 
   async sendBulkDocument(chatIds: (number | string)[], document: string | Blob | File, caption?: string, parseMode?: string, filename?: string): Promise<void> {
-    const promises = chatIds.map(chatId => 
-      this.sendDocument(chatId, document, caption, parseMode, filename).catch(error => {
-        console.error(`Failed to send document to ${chatId}:`, error);
-        return error;
-      })
+    console.log(`📄 Starting bulk document send to ${chatIds.length} recipients`);
+    console.log(`   - Filename: ${filename || 'default'}, Caption length: ${caption?.length || 0}`);
+    
+    const results = await Promise.allSettled(
+      chatIds.map(chatId => this.sendDocument(chatId, document, caption, parseMode, filename))
     );
 
-    await Promise.allSettled(promises);
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    if (failed > 0) {
+      console.warn(`⚠️ Some documents failed to send:`);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`   - Chat ${chatIds[index]}: ${result.reason}`);
+        }
+      });
+    }
+    
+    console.log(`✅ Bulk document send completed: ${successful} successful, ${failed} failed out of ${chatIds.length}`);
   }
 
   async sendMessageWithBoxes(chatId: number | string, text: string, boxes: Array<{text: string, link: string}>, parseMode?: string): Promise<void> {

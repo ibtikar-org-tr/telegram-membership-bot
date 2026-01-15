@@ -155,6 +155,7 @@ api.post('/webhook/setup', async (c) => {
 
 api.post('/announcement', async (c) => {
   try {
+    console.log('📢 Announcement endpoint called');
     let message: string;
     let parse_mode: string | undefined;
     let photo: Blob | undefined;
@@ -162,17 +163,21 @@ api.post('/announcement', async (c) => {
     let filename: string | undefined;
 
     const contentType = c.req.header('Content-Type') || '';
+    console.log('Content-Type:', contentType);
 
     if (contentType.includes('multipart/form-data')) {
       // Handle multipart form data (for file/photo uploads)
       const formData = await c.req.formData();
+      console.log('✅ FormData parsed successfully');
       
       message = formData.get('message') as string;
       parse_mode = (formData.get('parse_mode') as string) || undefined;
+      console.log('Message length:', message?.length || 0, 'Parse mode:', parse_mode);
       
       // Handle photo upload
       const photoFile = formData.get('photo') as File;
       if (photoFile && photoFile.size > 0) {
+        console.log('📷 Photo file received:', photoFile.name, 'Size:', photoFile.size, 'Type:', photoFile.type);
         const arrayBuffer = await photoFile.arrayBuffer();
         photo = new Blob([arrayBuffer], { type: photoFile.type || 'image/jpeg' });
       }
@@ -181,6 +186,7 @@ api.post('/announcement', async (c) => {
       const documentFile = formData.get('document') as File;
       if (documentFile && documentFile.size > 0) {
         // Pass File directly instead of converting to Blob to preserve proper encoding
+        console.log('📄 Document file received:', documentFile.name, 'Size:', documentFile.size, 'Type:', documentFile.type);
         document = documentFile;
         filename = documentFile.name || 'document';
       }
@@ -189,14 +195,17 @@ api.post('/announcement', async (c) => {
       const jsonData = await c.req.json();
       message = jsonData.message;
       parse_mode = jsonData.parse_mode;
+      console.log('✅ JSON data parsed successfully. Message length:', message?.length || 0);
     }
     
     if (!message) {
+      console.warn('⚠️ Message is required but not provided');
       return c.json({ error: 'Message is required' }, 400);
     }
 
     // Check that only one attachment type is provided
     if (photo && document) {
+      console.warn('⚠️ Both photo and document provided. Only one attachment type allowed.');
       return c.json({ 
         error: 'Cannot send both photo and document. Please send only one attachment type.' 
       }, 400);
@@ -206,12 +215,16 @@ api.post('/announcement', async (c) => {
     const memberSheetServices = new MemberSheetServices(c.env);
 
     // Fetch all members from Google Sheet
+    console.log('📋 Fetching members from Google Sheet...');
     const members = await memberSheetServices.getMembers();
+    console.log('✅ Retrieved', members.length, 'total members');
     
     // Filter members who have telegram_id
     const membersWithTelegram = members.filter(member => member.telegram_id && member.telegram_id.trim() !== '');
+    console.log('✅ Filtered', membersWithTelegram.length, 'members with Telegram IDs');
     
     if (membersWithTelegram.length === 0) {
+      console.warn('⚠️ No members with Telegram IDs found in the sheet');
       return c.json({ 
         error: 'No members with Telegram IDs found in the sheet' 
       }, 404);
@@ -221,16 +234,24 @@ api.post('/announcement', async (c) => {
     const telegramIds = membersWithTelegram.map(member => member.telegram_id);
 
     // Send announcement based on attachment type
+    console.log('📤 Starting announcement delivery to', telegramIds.length, 'recipients');
+    const attachmentType = photo ? 'photo' : document ? 'document' : 'text';
+    console.log('📌 Attachment type:', attachmentType);
+    
     if (photo) {
       // Send as photo with caption
+      console.log('🖼️ Sending photo announcements...');
       await telegramService.sendBulkPhoto(telegramIds, photo, message, parse_mode);
     } else if (document) {
       // Send as document with caption
+      console.log('📄 Sending document announcements...');
       await telegramService.sendBulkDocument(telegramIds, document, message, parse_mode, filename);
     } else {
       // Send as text message
+      console.log('💬 Sending text announcements...');
       await telegramService.sendBulkMessage(telegramIds, message, parse_mode);
     }
+    console.log('✅ Announcement delivery completed');
     
     return c.json({ 
       success: true, 
@@ -241,10 +262,15 @@ api.post('/announcement', async (c) => {
       attachment_type: photo ? 'photo' : document ? 'document' : 'text'
     });
   } catch (error) {
-    console.error('Announcement error:', error);
+    console.error('❌ Announcement error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return c.json({ 
       error: 'Failed to send announcement',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     }, 500);
   }
 });
