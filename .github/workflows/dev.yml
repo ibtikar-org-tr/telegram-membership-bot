@@ -1,0 +1,85 @@
+name: Deploy to Cloudflare Worker
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      SMTP_USER: ${{ vars.SMTP_USER }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      MEMBER_GOOGLE_SHEET_INDEX: ${{ vars.MEMBER_GOOGLE_SHEET_INDEX }}
+      MEMBER_GOOGLE_SHEET_ID: ${{ vars.MEMBER_GOOGLE_SHEET_ID }}
+      MEMBER_GOOGLE_SHEET_PAGE_NAME: ${{ vars.MEMBER_GOOGLE_SHEET_PAGE_NAME }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: npm install
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Update wrangler config with environment variables
+        run: |
+          # Create script to update wrangler.jsonc - remove secrets and set vars
+          cat > update_config.cjs << 'EOF'
+          const fs = require('fs');
+          
+          try {
+            // Read the file
+            let content = fs.readFileSync('wrangler.jsonc', 'utf8');
+            
+            // Replace specific values in the vars section using regex
+            content = content.replace(/"BASE_URL":\s*"[^"]*"/, `"BASE_URL": "${process.env.BASE_URL}"`);
+            content = content.replace(/"SMTP_HOST":\s*"[^"]*"/, `"SMTP_HOST": "${process.env.SMTP_HOST}"`);
+            content = content.replace(/"SMTP_PORT":\s*"[^"]*"/, `"SMTP_PORT": "${process.env.SMTP_PORT}"`);
+            content = content.replace(/"SMTP_USER":\s*"[^"]*"/, `"SMTP_USER": "${process.env.SMTP_USER}"`);
+
+            content = content.replace(/("database_id"\s*:\s*")[^"]*(")/, `"database_id": "${process.env.D1_DATABASE_ID}"`);
+                    
+            // Write back the modified content
+            fs.writeFileSync('wrangler.jsonc', content);
+            console.log('Successfully updated wrangler.jsonc with environment variables');
+          } catch (error) {
+            console.error('Error updating config:', error);
+            process.exit(1);
+          }
+          EOF
+          
+          node update_config.cjs
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: cat wrangler.jsonc >> wrangler.local.jsonc && wrangler deploy --config wrangler.local.jsonc
+
+      - name: Set secrets in Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "${{ secrets.SECRET_KEY }}" | wrangler secret put SECRET_KEY
+          echo "${{ vars.MEMBER_GOOGLE_SHEET_ID }}" | wrangler secret put MEMBER_GOOGLE_SHEET_ID
+          echo "${{ vars.MEMBER_GOOGLE_SHEET_PAGE_NAME }}" | wrangler secret put MEMBER_GOOGLE_SHEET_PAGE_NAME
+          echo "${{ secrets.SMTP_PASS }}" | wrangler secret put SMTP_PASS
+          echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" | wrangler secret put TELEGRAM_BOT_TOKEN
+          # Handle JSON secret properly by writing to temp file first
+          echo '${{ vars.MEMBER_GOOGLE_SHEET_INDEX }}' > MEMBER_GOOGLE_SHEET_INDEX.json
+          wrangler secret put MEMBER_GOOGLE_SHEET_INDEX < MEMBER_GOOGLE_SHEET_INDEX.json
+          rm MEMBER_GOOGLE_SHEET_INDEX.json
+          echo '${{ secrets.GOOGLE_API_KEY }}' > GOOGLE_API.json
+          wrangler secret put GOOGLE_API_KEY < GOOGLE_API.json
+          rm GOOGLE_API.json
